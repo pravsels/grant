@@ -1,0 +1,47 @@
+/* styles.css */
+
+.tab-nav {
+  display: flex;
+  background: rgba(248, 248, 248, 0.75);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid #ccc;
+  padding: 0 1rem;
+}
+
+.tab-list {
+  display: flex;
+  width: 100%;       /* take entire nav width */
+}
+
+/* Each tab now flex‑grows to fill half the space */
+.tab-button {
+  flex: 1;                         /* equal width */
+  text-align: center;              /* center text */
+  padding: 0.75rem 0;              /* vertical padding only */
+  font-size: 14px;
+  color: #555;
+  background: transparent;
+  border: 1px solid transparent;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+/* Remove margin gaps so the two tabs butt right up next to each other */
+.tab-button + .tab-button {
+  border-left: 1px solid #ccc;    /* subtle divider between the two */
+}
+
+.tab-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.tab-button.active {
+  background: #fff;
+  color: #000;
+  border-color: #ccc;
+  border-bottom-color: transparent;
+  margin-bottom: -1px;             /* overlap the nav’s bottom border */
+}
+

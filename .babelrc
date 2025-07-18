@@ -1,0 +1,6 @@
+{
+  "presets": [
+    "@babel/preset-env",     // transpile modern JS
+    "@babel/preset-react"    // transpile JSX
+  ]
+}
