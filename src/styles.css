@@ -1,5 +1,11 @@
 /* styles.css */
 
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .tab-nav {
   display: flex;
   background: rgba(248, 248, 248, 0.75);
@@ -43,5 +49,12 @@
   border-color: #ccc;
   border-bottom-color: transparent;
   margin-bottom: -1px;             /* overlap the nav’s bottom border */
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 0;       
 }
 

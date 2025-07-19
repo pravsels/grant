@@ -6,7 +6,15 @@ export default function App() {
     const [mode, setMode] = useState('reader');
 
     return (
-        <div className="app-container">
+        <div 
+            className="app-container"
+            style={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100vh',
+                overflow: 'hidden'
+            }}
+        >
             
             <nav className="tab-nav">
                 <div className="tab-list">
@@ -25,7 +33,15 @@ export default function App() {
                 </div>
             </nav>
 
-            <main className="tab-content">
+            <main 
+                className="tab-content"
+                style={{ 
+                        flexGrow: 1, 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                      }}
+            >
                 {mode === 'reader' ? <ReaderTab /> : <ChatTab />}
             </main>
 
