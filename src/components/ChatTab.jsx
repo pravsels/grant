@@ -6,6 +6,40 @@ export default function ChatTab() {
   const [isStreaming, setIsStreaming] = useState(false);
   const messageListRef = useRef(null); 
 
+  // register onChunk callback once 
+  useEffect(() => {
+    const onChunk = (chunk) => {
+      if (chunk === null) {
+        // end of stream
+        setIsStreaming(false);
+        return;
+      }
+
+      if (chunk instanceof Error) {
+        // error came through—log and stop streaming, but don't render the Error object
+        console.error('Chat error:', chunk);
+        setIsStreaming(false);
+        return;
+      }
+      
+      setMessages(prevMsgs => {
+        // chunk just coming in for the first time 
+        if (prevMsgs[prevMsgs.length - 1]?.role !== 'assistant') {
+          return [...prevMsgs, { role: 'assistant', content: chunk }];
+        }
+
+        const copy = [...prevMsgs];
+        copy[copy.length - 1].content += chunk;
+        return copy; 
+      });
+
+    };
+
+    // register callback 
+    window.electron.onChatStream(onChunk);
+
+  }, []); // ← empty deps → run once at mount
+
   // auto-scroll to bottom when messages change 
   useEffect(() => {
     if (messageListRef.current) {
@@ -19,9 +53,14 @@ export default function ChatTab() {
     // append user message 
     setMessages(prevMsgs => [...prevMsgs, { role: 'user', content: text }]);
     setInputText('');
+    
+    // setTimeout(() => setIsStreaming(false), 500);
+    window.electron.startChat([
+      ...messages,
+      { role: 'user', content: text }
+    ]);
     // set stream to get ready 
     setIsStreaming(true);
-    setTimeout(() => setIsStreaming(false), 500);
   };
 
   const handleDrop = e => {
