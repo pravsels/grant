@@ -27,9 +27,21 @@ function createWindow() {
 
 ipcMain.on('gemini-chat-start', async (event, messages) => {
     try {
-        const stream = await ai.models.generateContentStream({
+        const history = messages.slice(0, -1).map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : msg.role,
+            parts: [{ text: msg.content }]
+        }));
+        
+        const currentMessage = messages[messages.length - 1];
+        
+        // Create chat with history
+        const chat = ai.chats.create({
             model: 'gemini-2.5-flash',
-            messages
+            history: history
+        });
+        
+        const stream = await chat.sendMessageStream({
+            message: currentMessage.content 
         });
 
         // forward chunks to renderer as they arrive 

@@ -6,6 +6,11 @@ html, body, #root {
   padding: 0;
 }
 
+body, .message-list {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
 .tab-nav {
   display: flex;
   background: rgba(248, 248, 248, 0.75);

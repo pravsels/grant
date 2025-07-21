@@ -4,7 +4,7 @@ export default function ChatTab() {
   const [messages, setMessages] = useState([]);   // { role: 'user'|'assistant', content: string }
   const [inputText, setInputText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const messageListRef = useRef(null); 
+  const messageListRef = useRef(null);
 
   // register onChunk callback once 
   useEffect(() => {
@@ -16,20 +16,36 @@ export default function ChatTab() {
       }
 
       if (chunk instanceof Error) {
-        // error came through—log and stop streaming, but don't render the Error object
+        // stop streaming and don't render the Error object 
         console.error('Chat error:', chunk);
         setIsStreaming(false);
         return;
       }
+
+      let chunkText = '';
+      try {
+        if (chunk.candidates && chunk.candidates[0] && chunk.candidates[0].content) {
+          const parts = chunk.candidates[0].content.parts;
+          if (parts && parts[0] && parts[0].text) {
+            chunkText = parts[0].text;
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing chunk:', error);
+        return;
+      }
+
+      // Only proceed if we have actual text content
+      if (!chunkText) return;
       
       setMessages(prevMsgs => {
         // chunk just coming in for the first time 
         if (prevMsgs[prevMsgs.length - 1]?.role !== 'assistant') {
-          return [...prevMsgs, { role: 'assistant', content: chunk }];
+          return [...prevMsgs, { role: 'assistant', content: chunkText }];
         }
 
         const copy = [...prevMsgs];
-        copy[copy.length - 1].content += chunk;
+        copy[copy.length - 1].content += chunkText;
         return copy; 
       });
 
