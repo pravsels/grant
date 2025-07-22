@@ -2,13 +2,14 @@
 // main.js 
 require('dotenv').config();
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 function createWindow() {
+
     const window = new BrowserWindow({
         width: 800,
         height: 600,
@@ -19,10 +20,41 @@ function createWindow() {
             webviewTag: true
         }
     });
+
+    const template = [
+          ...(process.platform === 'darwin' ? [{ role: 'appMenu' }] : []),
+
+        {
+            label: 'Edit',
+            submenu: [
+                { role: 'undo' },
+                { role: 'redo' },
+                { type: 'separator' },
+                { role: 'cut' },
+                { role: 'copy' },
+                { role: 'paste' },
+                { role: 'selectAll' }
+            ]
+        },
+
+        {
+            label: 'View',
+            submenu: [
+                { role: 'zoomIn',  accelerator: 'CommandOrControl+=' },
+                { role: 'zoomOut', accelerator: 'CommandOrControl+-' },
+                { role: 'resetZoom', accelerator: 'CommandOrControl+0' }
+            ]
+        }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+
     // load html 
     window.loadFile(path.join(__dirname, 'index.html'));
 
     window.webContents.openDevTools({ mode: 'detach' });
+
 }
 
 ipcMain.on('gemini-chat-start', async (event, messages) => {
