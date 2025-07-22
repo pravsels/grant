@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Bubble from './Bubble';
 
 export default function ChatTab() {
   const [messages, setMessages] = useState([]);   // { role: 'user'|'assistant', content: string }
@@ -124,20 +125,7 @@ export default function ChatTab() {
           </div>
         ) : (
           messages.map((msg, idx) => (
-            <div
-              key={idx}
-              style={{
-                alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
-                background: msg.role === 'user' ? '#dcf8c6' : '#fff',
-                padding: '0.5rem 1rem',
-                borderRadius: '1rem',
-                margin: '0.25rem 0',
-                maxWidth: '70%',
-                userSelect: 'none'
-              }}
-            >
-              {msg.content}
-            </div>
+            <Bubble key={idx} role={msg.role} content={msg.content} />
           ))
         )}
       </div>
