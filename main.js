@@ -8,6 +8,9 @@ const path = require('path');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+const fs = require('fs');
+const systemPrompt = fs.readFileSync(path.join(__dirname, 'system_prompt.txt'), 'utf-8');
+
 function createWindow() {
 
     const window = new BrowserWindow({
@@ -69,6 +72,9 @@ ipcMain.on('gemini-chat-start', async (event, messages) => {
         // Create chat with history
         const chat = ai.chats.create({
             model: 'gemini-2.5-flash-lite',
+            config: {
+                systemInstruction: systemPrompt,
+            },
             history: history
         });
         
