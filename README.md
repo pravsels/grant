@@ -21,6 +21,8 @@ Install all the dependencies for this project:
 npm install 
 ```
 
+Please note that currently this app only works with Gemini. You need to create a `.env` file with your API key set as `GEMINI_API_KEY="<your_key>"`.
+
 ## Launching
 
 To build and run the app, please use: 
