@@ -1,4 +1,4 @@
-# Symbiote
+# Grant
 
 An app where the AI never does anything for you. 
 

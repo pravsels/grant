@@ -1,5 +1,5 @@
 {
-  "name": "symbiote",
+  "name": "grant",
   "version": "0.0.1",
   "main": "main.js",
   "scripts": {
@@ -9,15 +9,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pravsels/symbiote.git"
+    "url": "git+https://github.com/pravsels/grant.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/pravsels/symbiote/issues"
+    "url": "https://github.com/pravsels/grant/issues"
   },
-  "homepage": "https://github.com/pravsels/symbiote#readme",
+  "homepage": "https://github.com/pravsels/grant#readme",
   "description": "",
   "devDependencies": {
     "@babel/core": "^7.28.0",
