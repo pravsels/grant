@@ -4,6 +4,9 @@ import ChatTab from './ChatTab';
 
 export default function App() {
     const [mode, setMode] = useState('reader');
+    const [messages, setMessages]     = useState([]);
+    const [inputText, setInputText]   = useState('');
+    const [isStreaming, setIsStreaming] = useState(false);
 
     return (
         <div 
@@ -42,7 +45,16 @@ export default function App() {
                         overflow: 'hidden'
                       }}
             >
-                {mode === 'reader' ? <ReaderTab /> : <ChatTab />}
+                {
+                    mode === 'reader' ? <ReaderTab /> : 
+                                        <ChatTab messages={messages}
+                                                 setMessages={setMessages}
+                                                 inputText={inputText}
+                                                 setInputText={setInputText}
+                                                 isStreaming={isStreaming}
+                                                 setIsStreaming={setIsStreaming} 
+                                        />
+                }
             </main>
 
         </div>

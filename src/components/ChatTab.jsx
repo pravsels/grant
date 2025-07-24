@@ -1,11 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Bubble from './Bubble';
 
-export default function ChatTab() {
-  const [messages, setMessages] = useState([]);   // { role: 'user'|'assistant', content: string }
-  const [inputText, setInputText] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
+export default function ChatTab(
+  {
+    messages,
+    setMessages,
+    inputText,
+    setInputText,
+    isStreaming,
+    setIsStreaming
+  }) {
   const messageListRef = useRef(null);
+  const inputRef = useRef(null);
 
   // register onChunk callback once 
   useEffect(() => {
@@ -55,6 +61,8 @@ export default function ChatTab() {
     // register callback 
     window.electron.onChatStream(onChunk);
 
+    inputRef.current?.focus();
+
   }, []); // ← empty deps → run once at mount
 
   // auto-scroll to bottom when messages change 
@@ -78,6 +86,8 @@ export default function ChatTab() {
     ]);
     // set stream to get ready 
     setIsStreaming(true);
+    // focus back on textbox 
+    inputRef.current?.focus();
   };
 
   const handleDrop = e => {
@@ -141,6 +151,7 @@ export default function ChatTab() {
         }}
       >
         <textarea 
+          ref={inputRef}
           value={inputText}
           onChange={e => setInputText(e.target.value)}
           onKeyDown={e => {
@@ -149,7 +160,6 @@ export default function ChatTab() {
               handleSend();
             }
           }}
-          disabled={isStreaming}
           style={{
             flexGrow: 1,
             resize: 'none',
