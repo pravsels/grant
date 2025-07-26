@@ -17,6 +17,9 @@ export default function ReaderTab(
   const [showOverlay, setShowOverlay] = useState(false);
   const hideTimer = useRef(null);
 
+  const [isConversationMode, setIsConversationMode] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+
   const [currentIndex, setCurrentIndex] = useState(1);
 
   // Sync ref whenever isPlaying changes:
@@ -55,7 +58,12 @@ export default function ReaderTab(
     "Some 24,000 pigs were needed to make just one pound of insulin, which could treat only 750 diabetics annually."
  ]);
 
-  
+
+ function toggleConversationMode() {
+    speechSynthesis.cancel();
+    setIsPlaying(false);
+    setIsConversationMode(cm => !cm);
+ }
 
   // fetch article from the internet 
   async function fetchArticle(url) {
@@ -93,7 +101,14 @@ export default function ReaderTab(
   // highlight already read and currently reading text in different ways 
   function highlightedText({ sentences, currentIndex }) {
     return (
-      <div className="article-text" style={{ flex: 1, maxWidth: '80ch' }}>
+      <div className="article-text" 
+           style={{ 
+                    flex: 1, 
+                    maxWidth: '80ch',
+                    overflowY: 'auto',   // enable scrolling
+                    zIndex: 0
+                  }}
+      >
         {
           sentences.map((sentence, index) => {
             const classname = index  < currentIndex ? 'sentence-read' : 
@@ -144,6 +159,7 @@ export default function ReaderTab(
                   minHeight: 0,
                 }}
     >
+
       {/* aritcle display box  */}
       <div className="reader-container"
            onMouseMove={handleMouseEnter}
@@ -155,12 +171,49 @@ export default function ReaderTab(
                     flex: 1, 
                     display: 'flex',
                     overflow: 'hidden',
+                    flexDirection: 'column',
                     minHeight: 0
                   }}
       >
-        { highlightedText({ sentences, currentIndex }) }
+          {isConversationMode && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0, left: 0, right: 0, bottom: 0,
+                  background: 'rgba(0,0,0,0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 5
+                }}
+              >
+                <button
+                  onMouseDown={() => { setIsRecording(r => !r); }}
+                  onMouseUp={() => { setIsRecording(r => !r); }}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: isRecording ? 'red' : '#e0e0e0',
+                    color: '#fff',
+                    cursor: 'pointer',
+                    fontSize: '1.5rem'
+                  }}
+                >
+                  {isRecording ? '🛑' : '🎤'}
+                </button>
+              </div>
+        )}
 
-        {showOverlay && 
+        <div style={{ 
+                      position: 'relative', 
+                      flex: 1,
+                      overflowY: 'auto',
+                      zIndex: 0 }}>
+          {highlightedText({ sentences, currentIndex })}
+        </div>
+
+        {showOverlay && !isConversationMode &&
           (<button
             onClick={onPlay}
             style={{
@@ -213,6 +266,9 @@ export default function ReaderTab(
             border: '1px solid #ccc'
           }}
         />
+        <button onClick={toggleConversationMode}>
+          {isConversationMode ? 'Stop Talking' : 'Start Talking'}
+        </button>
         <button
           onClick={fetchArticle}
           disabled={loading || !url.trim()}
