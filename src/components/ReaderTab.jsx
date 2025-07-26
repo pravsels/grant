@@ -14,10 +14,24 @@ export default function ReaderTab(
   const ttsRef = useRef(null);
   const playingRef = useRef(isPlaying);
 
+  const [showOverlay, setShowOverlay] = useState(false);
+  const hideTimer = useRef(null);
+
+  const [currentIndex, setCurrentIndex] = useState(1);
+
   // Sync ref whenever isPlaying changes:
   useEffect(() => {
     playingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      const element = document.getElementById(`sentence-${currentIndex}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [currentIndex, isPlaying]);
 
   const [sentences, setSentences] = useState([
     "In many ways, this horse is normal: it stands roughly 14 hands high, has dark eyes hooded by thick lashes, and makes a contented neighing sound when its coat is stroked.",
@@ -41,7 +55,7 @@ export default function ReaderTab(
     "Some 24,000 pigs were needed to make just one pound of insulin, which could treat only 750 diabetics annually."
  ]);
 
-  const [currentIndex, setCurrentIndex] = useState(1);
+  
 
   // fetch article from the internet 
   async function fetchArticle(url) {
@@ -87,7 +101,11 @@ export default function ReaderTab(
                               'sentence-unread';
 
             return (
-              <span key={index} className={classname}>
+              <span 
+                key={index} 
+                id={`sentence-${index}`}
+                className={classname}
+              >
                 {sentence}{' '}
               </span>
             );
@@ -109,6 +127,14 @@ export default function ReaderTab(
     }
   }
 
+  function handleMouseEnter() {
+    setShowOverlay(true);
+
+    // storing and clearing timeout by id so we're not setting of too many
+    clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setShowOverlay(false), 3000);
+  }
+
   return (
     <div className="reader-tab" 
          style={{ flex: 1,
@@ -119,10 +145,45 @@ export default function ReaderTab(
                 }}
     >
       {/* aritcle display box  */}
-      { highlightedText({ sentences, currentIndex }) }
-      
-      {/* controls: play, pause, stop */}
-      
+      <div className="reader-container"
+           onMouseMove={handleMouseEnter}
+           onMouseLeave={() => {
+            clearTimeout(hideTimer.current);
+            setShowOverlay(false);
+           }}
+           style={{ position: 'relative', 
+                    flex: 1, 
+                    display: 'flex',
+                    overflow: 'hidden',
+                    minHeight: 0
+                  }}
+      >
+        { highlightedText({ sentences, currentIndex }) }
+
+        {showOverlay && 
+          (<button
+            onClick={onPlay}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              opacity: 0.3,
+              padding: '0.75rem',
+              borderRadius: '50%',
+              border: 'none',
+              background: '#000',
+              color: '#fff',
+              cursor: 'pointer',
+              transition: 'opacity 0.2s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = 1}
+            onMouseLeave={e => e.currentTarget.style.opacity = 0.3}
+          >
+            {isPlaying ? '⏸' : '▶️'}
+          </button>)
+       }
+      </div>
       
       {/* URL input box  */}
       <div
@@ -152,17 +213,6 @@ export default function ReaderTab(
             border: '1px solid #ccc'
           }}
         />
-        <button onClick={onPlay} 
-                style={{
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        border: '1px solid #ccc',
-                        background: '#e0e0e0',
-                        color: '#333'
-                }}
-        >
-          {isPlaying ? 'Pause' : 'Play'} 
-        </button>
         <button
           onClick={fetchArticle}
           disabled={loading || !url.trim()}
