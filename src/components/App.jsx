@@ -1,12 +1,22 @@
+
 import React, { useState } from 'react';
 import ReaderTab from './ReaderTab';
 import ChatTab from './ChatTab';
 
 export default function App() {
     const [mode, setMode] = useState('reader');
+
+    // chat tab state variables 
     const [messages, setMessages]     = useState([]);
     const [inputText, setInputText]   = useState('');
     const [isStreaming, setIsStreaming] = useState(false);
+
+    // reader tab state variables 
+    const [url, setUrl] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [sentences, setSentences] = useState([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPlaying, setIsPlaying] = useState(false);
 
     return (
         <div 
@@ -48,7 +58,17 @@ export default function App() {
                       }}
             >
                 {
-                    mode === 'reader' ? <ReaderTab /> : 
+                    mode === 'reader' ? <ReaderTab url={url}
+                                                   setUrl={setUrl}
+                                                   loading={loading}
+                                                   setLoading={setLoading}
+                                                   sentences={sentences}
+                                                   setSentences={setSentences}
+                                                   currentIndex={currentIndex}
+                                                   setCurrentIndex={setCurrentIndex}
+                                                   isPlaying={isPlaying}
+                                                   setIsPlaying={setIsPlaying}
+                                        /> : 
                                         <ChatTab messages={messages}
                                                  setMessages={setMessages}
                                                  inputText={inputText}

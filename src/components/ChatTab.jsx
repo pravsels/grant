@@ -1,17 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useRef, useEffect } from 'react';
 import Bubble from './Bubble';
 
 export default function ChatTab(
   {
-    messages,
-    setMessages,
-    inputText,
-    setInputText,
-    isStreaming,
-    setIsStreaming
+    messages, setMessages,
+    inputText, setInputText,
+    isStreaming, setIsStreaming
   }) {
   const messageListRef = useRef(null);
-  const inputRef = useRef(null);
+  const textInputRef = useRef(null);
 
   // register onChunk callback once 
   useEffect(() => {
@@ -61,7 +59,7 @@ export default function ChatTab(
     // register callback 
     window.electron.onChatStream(onChunk);
 
-    inputRef.current?.focus();
+    textInputRef.current?.focus();
 
   }, []); // ← empty deps → run once at mount
 
@@ -87,7 +85,7 @@ export default function ChatTab(
     // set stream to get ready 
     setIsStreaming(true);
     // focus back on textbox 
-    inputRef.current?.focus();
+    textInputRef.current?.focus();
   };
 
   const handleDrop = e => {
@@ -121,25 +119,37 @@ export default function ChatTab(
           padding: '1rem',
           background: '#fafafa',
           display: 'flex',
-          flexDirection: 'column'
+          flexDirection: 'column',
+          alignItems: 'center' 
         }}
       >
-        {messages.length === 0 ? (
-          <div style={{
-                        color: '#999', 
-                        display: 'flex',
-                        alignItems: 'center',     // centers vertically 
-                        justifyContent: 'center', // centers horizontally 
-                        height: '100%'
-                      }}
-          >
-            nothing to show
-          </div>
-        ) : (
-          messages.map((msg, idx) => (
-            <Bubble key={idx} role={msg.role} content={msg.content} />
-          ))
-        )}
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '120ch', 
+            display: 'flex',
+            flex: 1,
+            flexDirection: 'column'
+          }}
+        >
+          {messages.length === 0 ? (
+            <div style={{
+                          color: '#999', 
+                          display: 'flex',
+                          alignItems: 'center',     // centers vertically 
+                          justifyContent: 'center', // centers horizontally 
+                          height: '100%',
+                          flex: 1 
+                        }}
+            >
+              nothing to show
+            </div>
+          ) : (
+            messages.map((msg, idx) => (
+              <Bubble key={idx} role={msg.role} content={msg.content} />
+            ))
+          )}
+        </div>
       </div>
       
       {/* Input area */}
@@ -153,7 +163,7 @@ export default function ChatTab(
         }}
       >
         <textarea 
-          ref={inputRef}
+          ref={textInputRef}
           value={inputText}
           onChange={e => setInputText(e.target.value)}
           onKeyDown={e => {
