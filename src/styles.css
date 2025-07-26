@@ -65,7 +65,7 @@ body, .message-list {
 }
 
 
-.sentence-read { background: rgba(200,200,200,0.2); }
+.sentence-read { background: rgba(159, 149, 149, 0.2); }
 .sentence-current { background: rgba(212, 199, 53, 0.3); }
 .sentence-unread { background: transparent; }
 

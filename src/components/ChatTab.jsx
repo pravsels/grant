@@ -139,10 +139,12 @@ export default function ChatTab(
                           alignItems: 'center',     // centers vertically 
                           justifyContent: 'center', // centers horizontally 
                           height: '100%',
-                          flex: 1 
+                          flex: 1,
+                          fontFamily: 'Georgia, serif',
+                          fontSize: '1.125rem'
                         }}
             >
-              nothing to show
+              ready to explore ? 
             </div>
           ) : (
             messages.map((msg, idx) => (
