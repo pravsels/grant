@@ -102,10 +102,11 @@ export default function ChatTab(
   return (
     <div 
       style={{ 
-          flexGrow: 1,
+          flex: 1,
           display: 'flex', 
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          minHeight: 0
          }}
       onDragOver={e => e.preventDefault()}
       onDrop={handleDrop}
@@ -114,8 +115,9 @@ export default function ChatTab(
       <div 
         ref={messageListRef}
         style={{
-          flexGrow: 1,
+          flex: 1,
           overflowY: 'auto',
+          minHeight: 0,
           padding: '1rem',
           background: '#fafafa',
           display: 'flex',
@@ -161,7 +163,7 @@ export default function ChatTab(
             }
           }}
           style={{
-            flexGrow: 1,
+            flex: 1,
             resize: 'none',
             padding: '0.5rem',
             borderRadius: '4px',

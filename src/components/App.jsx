@@ -15,7 +15,8 @@ export default function App() {
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100vh',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                minHeight: 0
             }}
         >
             
@@ -39,10 +40,11 @@ export default function App() {
             <main 
                 className="tab-content"
                 style={{ 
-                        flexGrow: 1, 
+                        flex: 1, 
                         display: 'flex', 
                         flexDirection: 'column',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        minHeight: 0
                       }}
             >
                 {

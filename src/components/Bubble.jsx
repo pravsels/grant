@@ -3,6 +3,10 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import remarkMath   from 'remark-math';
+import rehypeKatex  from 'rehype-katex';
+
+import 'katex/dist/katex.min.css';
 import 'highlight.js/styles/github.css';
 
 export default function Bubble ({ role, content }) {
@@ -10,7 +14,7 @@ export default function Bubble ({ role, content }) {
 
     return (
         <div
-            onCopy={e => e.preventDefault()}
+            onCopy={isUser ? undefined : e => e.preventDefault()}
             style={{
                 alignSelf: isUser ? 'flex-end' : 'flex-start',
                 background: isUser ? '#dcf8c6' : '#fff',
@@ -18,20 +22,37 @@ export default function Bubble ({ role, content }) {
                 borderRadius: '1rem',
                 margin: '0.25rem 0',
                 maxWidth: '70%',
-                userSelect: 'none',
+                userSelect: isUser ? 'text' : 'none',
                 fontSize: '16px',
                 lineHeight: 1.55
             }}
         >
             <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex, rehypeHighlight]}
                 components={{
-                    // Override how paragraphs render
-                    p: (props) => (
-                    // props.children is the paragraph text
-                    <p style={{ margin: '0.5rem 0' }} {...props} />
+                    // For display math (the $$…$$ blocks):
+                    math: ({ value }) => (
+                    <span style={{ background: 'rgba(255,249,196,0.5)' }}
+                            dangerouslySetInnerHTML={{ __html: value }} />
                     ),
+                    // For inline math ($…$):
+                    inlineMath: ({ value }) => (
+                    <code style={{ background: '#fff7c2', padding: '0 2px', borderRadius: '2px' }}
+                            dangerouslySetInnerHTML={{ __html: value }} />
+                    ),
+
+                    // Paragraphs—but if the paragraph only contains a code block (or pre),
+                    //    render a <div> so you don’t end up with <p><pre>…</pre></p>.
+                    p: ({ node, children, ...props }) => {
+                        const onlyCode = 
+                            node.children.length === 1 &&
+                            (node.children[0].type === 'code' || node.children[0].tagName === 'pre');
+                        if (onlyCode) {
+                            return <div {...props}>{children}</div>;
+                        }
+                        return <p style={{ margin: '0.5rem 0' }} {...props}>{children}</p>;
+                    },
 
                     // Override how code renders
                     code({ inline, children, ...props }) {
