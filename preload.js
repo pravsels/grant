@@ -25,6 +25,11 @@ contextBridge.exposeInMainWorld('electron', {
     // register a handler for incoming chunks / end / error 
     onChatStream: (cb) => {
         callbacks.push(cb);
-    }
+    },
+    // handler for gemini tts 
+    generateTTSFile: (text) => {
+        return ipcRenderer.invoke('gemini-tts', text)
+    },
+    deleteTTSFile: (filePath) => ipcRenderer.invoke('delete-tts-file', filePath),
 });
 

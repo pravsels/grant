@@ -11,8 +11,9 @@ export default function ReaderTab(
   }
 ) {
   const urlInputRef = useRef(null);
-  const ttsRef = useRef(null);
   const playingRef = useRef(isPlaying);
+  const audioCache = useRef(new Map());
+  const [isTtsReady, setIsTtsReady] = useState(false);
 
   const [showOverlay, setShowOverlay] = useState(false);
   const hideTimer = useRef(null);
@@ -21,20 +22,6 @@ export default function ReaderTab(
   const [isRecording, setIsRecording] = useState(false);
 
   const [currentIndex, setCurrentIndex] = useState(1);
-
-  // Sync ref whenever isPlaying changes:
-  useEffect(() => {
-    playingRef.current = isPlaying;
-  }, [isPlaying]);
-
-  useEffect(() => {
-    if (isPlaying) {
-      const element = document.getElementById(`sentence-${currentIndex}`);
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    }
-  }, [currentIndex, isPlaying]);
 
   const [sentences, setSentences] = useState([
     "In many ways, this horse is normal: it stands roughly 14 hands high, has dark eyes hooded by thick lashes, and makes a contented neighing sound when its coat is stroked.",
@@ -56,7 +43,44 @@ export default function ReaderTab(
     "The same goes for most medicines, including insulin, which today is manufactured biosynthetically inside E. coli bacteria.",
     "But before 1978, insulin was made by harvesting and grinding up the pancreases of dead pigs from slaughterhouses.",
     "Some 24,000 pigs were needed to make just one pound of insulin, which could treat only 750 diabetics annually."
- ]);
+  ]);
+
+  // Sync ref whenever isPlaying changes:
+  useEffect(() => {
+    playingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (isPlaying) {
+      const element = document.getElementById(`sentence-${currentIndex}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [currentIndex, isPlaying]);
+
+  useEffect(() => {
+    // Reset readiness
+    setIsTtsReady(false);
+  
+    // If already cached, we’re ready immediately
+    if (audioCache.current.has(currentIndex)) {
+      setIsTtsReady(true);
+      return;
+    }
+  
+    // Otherwise, fetch & cache
+    window.electron.generateTTSFile(sentences[currentIndex])
+      .then(p => {
+        audioCache.current.set(currentIndex, {
+          audio: new Audio(`file://${p}`),
+          path: p
+        });
+        setIsTtsReady(true);
+      })
+      .catch(console.error);
+
+  }, [currentIndex, sentences]);
 
 
  function toggleConversationMode() {
@@ -76,26 +100,53 @@ export default function ReaderTab(
   }
 
   // play next sentence 
-  function playSentence(sentenceIndex) {
+  async function playSentence(sentenceIndex) {
     if (sentenceIndex >= sentences.length) {
       setIsPlaying(false);
-      return; 
+      return;
     }
+  
+    try {
+      // Pull cache entry (might be undefined)
+      const entry = audioCache.current.get(sentenceIndex);
+      if (!entry) {
+        console.warn(`No cached audio for sentence ${sentenceIndex}, bailing`);
+        setIsPlaying(false);
+        return;
+      }
 
-    const utter = new SpeechSynthesisUtterance(sentences[sentenceIndex]);
-
-    // callback that happens after this sentence is uttered 
-    utter.onend = () => {
-      console.log("inside onend, isPlaying : ", isPlaying);
-      setCurrentIndex(i => {
-        const nextIndex = i + 1; 
-        if (playingRef.current) playSentence(nextIndex); 
-        return nextIndex; 
-      });
-    };
-
-    // speak this sentence out  
-    speechSynthesis.speak(utter);
+      let audio, filePath;
+      ({ audio, path: filePath } = entry);
+  
+      // Prefetch next
+      const next = sentenceIndex + 1;
+      if (next < sentences.length && !audioCache.current.has(next)) {
+        window.electron.generateTTSFile(sentences[next])
+          .then(p => {
+            const a2 = new Audio(`file://${p}`);
+            audioCache.current.set(next, { audio: a2, path: p });
+          })
+          .catch(console.error);
+      }
+  
+      // On end: advance and cleanup
+      audio.onended = () => {
+        setCurrentIndex(i => {
+          const nextIdx = i + 1;
+          if (playingRef.current) playSentence(nextIdx);
+          return nextIdx;
+        });
+        // delete regardless of cache hit or miss
+        window.electron.deleteTTSFile(filePath);
+        audioCache.current.delete(sentenceIndex);
+      };
+  
+      // Play!
+      audio.play();
+    } catch (err) {
+      console.error(err);
+      setIsPlaying(false);
+    }
   }
 
   // highlight already read and currently reading text in different ways 
@@ -213,7 +264,7 @@ export default function ReaderTab(
           {highlightedText({ sentences, currentIndex })}
         </div>
 
-        {showOverlay && !isConversationMode &&
+        {showOverlay && !isConversationMode && isTtsReady &&
           (<button
             onClick={onPlay}
             style={{

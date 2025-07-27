@@ -4,6 +4,9 @@ require('dotenv').config();
 
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
+const os = require('os');
+const tmp = require('path').join;
+const wav = require('wav');
 
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -94,6 +97,64 @@ ipcMain.on('gemini-chat-start', async (event, messages) => {
         event.sender.send('gemini-chat-error', err.message);
     }
 });
+
+ipcMain.handle('gemini-tts', async(_evt, text) => {
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-preview-tts',
+        contents: [
+            { 
+                parts: [
+                    { text: text }
+                ] 
+            }
+        ],
+        config: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+                voiceConfig: {
+                    prebuiltVoiceConfig: {
+                        voiceName: 'Kore'
+                    }
+                }
+            }
+        }
+    });
+
+    const { candidates } = response;
+    if (!Array.isArray(candidates) || candidates.length === 0) {
+        throw new Error("TTS returned no candidates");
+    }
+
+    const { content } = candidates[0];
+    if (!content || !Array.isArray(content.parts) || content.parts.length === 0) {
+        throw new Error("TTS candidate has no parts");
+    }
+
+    // base64 encoded data 
+    const base64_chunk =  content.parts[0].inlineData.data;
+    const pcm_chunk = Buffer.from(base64_chunk, 'base64');
+
+    const tmpPath = tmp(os.tmpdir(), `tts-${Date.now()}.wav`);
+    await new Promise((res, rej) => {
+        const writer = new wav.FileWriter(tmpPath, {
+        channels: 1,
+        sampleRate: 24000,
+        bitDepth: 16
+        });
+        writer.on('finish', res);
+        writer.on('error', rej);
+        writer.write(pcm_chunk);
+        writer.end();
+    });
+
+    return tmpPath;
+});
+
+ipcMain.handle('delete-tts-file', (_evt, filePath) => {
+    fs.unlink(filePath, err => {
+      if (err) console.error('Failed to delete TTS file:', err);
+    });
+  });
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => app.quit());
