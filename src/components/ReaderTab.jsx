@@ -317,7 +317,17 @@ export default function ReaderTab(
             border: '1px solid #ccc'
           }}
         />
-        <button onClick={toggleConversationMode}>
+        <button onClick={toggleConversationMode}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  background: '#e0e0e0',
+                  color: '#333',
+                  cursor: loading || !url ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s ease'
+                }}
+        >
           {isConversationMode ? 'Stop Talking' : 'Start Talking'}
         </button>
         <button
