@@ -21,6 +21,8 @@ export default function ReaderTab(
   const [isConversationMode, setIsConversationMode] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
+  const currentAudioRef = useRef(null);
+
   // Sync ref whenever isPlaying changes:
   useEffect(() => {
     playingRef.current = isPlaying;
@@ -78,6 +80,9 @@ export default function ReaderTab(
       const sentences = splitSentences(text);
       setSentences(sentences);
       setCurrentIndex(0);
+
+      audioCache.current.clear();
+      currentAudioRef.current = null; 
     } catch (err) {
       console.log(err);
       alert(`Error fetching the article: ${err.message}`);
@@ -112,6 +117,7 @@ export default function ReaderTab(
 
       let audio, filePath;
       ({ audio, path: filePath } = entry);
+      currentAudioRef.current = audio;
   
       // Prefetch next
       const next = sentenceIndex + 1;
@@ -134,6 +140,7 @@ export default function ReaderTab(
         // delete regardless of cache hit or miss
         window.electron.deleteTTSFile(filePath);
         audioCache.current.delete(sentenceIndex);
+        currentAudioRef.current = null;
       };
   
       // Play!
@@ -181,9 +188,15 @@ export default function ReaderTab(
   function onPlay() {
     if (isPlaying === false) {
       setIsPlaying(true);
-      playSentence(currentIndex);
+      if (currentAudioRef.current) {
+        currentAudioRef.current.play();
+      } else {
+        playSentence(currentIndex);
+      }
     } else {
-      speechSynthesis.cancel();
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+      }
       setIsPlaying(false);
     }
   }
