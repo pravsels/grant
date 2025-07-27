@@ -5,8 +5,8 @@ export default function ReaderTab(
   {
     url, setUrl,
     loading, setLoading,
-    // sentences, setSentences,
-    // currentIndex, setCurrentIndex,
+    sentences, setSentences,
+    currentIndex, setCurrentIndex,
     isPlaying, setIsPlaying
   }
 ) {
@@ -20,30 +20,6 @@ export default function ReaderTab(
 
   const [isConversationMode, setIsConversationMode] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-
-  const [currentIndex, setCurrentIndex] = useState(1);
-
-  const [sentences, setSentences] = useState([
-    "In many ways, this horse is normal: it stands roughly 14 hands high, has dark eyes hooded by thick lashes, and makes a contented neighing sound when its coat is stroked.",
-    "But its blood pulses with venom.",
-    "For weeks, this horse has been injected with the diluted venom of snakes, generating an immune response that will be exploited to produce lifesaving antivenom.",
-    "A veterinarian inserts a tube into the horse's jugular vein to extract its blood – about 1.5 percent of its body weight – every four weeks.",
-    "Each bag of horse blood is worth around $500.",
-    "Horses are just one of the many animals we use as chemical factories: there is a veritable Noah's ark of biopharming.",
-    "Every year, over 700,000 horseshoe crabs are caught and bled.",
-    "Their blood is used to test for contamination in the manufacture of medical equipment and drugs.",
-    "The global vaccine industry uses an estimated 600 million chicken eggs a year to produce influenza vaccines.",
-    "And we boil between 420 billion and 1 trillion silkworms every year to produce silk.",
-    "Some of these practices go back millennia.",
-    "On a small coastal spit along the Mediterranean Sea, ancient Phoenicians harvested snails from which they derived a rich-hued pigment known as Tyrian purple.",
-    "In a multistep process involving sun-drying and fermenting the gland that produces the color, 12,000 of these mollusks went into every single gram of dye.",
-    "The complexity of its production, and therefore rarity of the product, made the dye expensive, costing approximately three troy pounds of gold per pound of dye.",
-    "Tyrian purple was reserved for highly selective items such as the toga picta worn by the Roman elite.",
-    "Synthetic dyes have long since overtaken the animal-derived production of Tyrian purple.",
-    "The same goes for most medicines, including insulin, which today is manufactured biosynthetically inside E. coli bacteria.",
-    "But before 1978, insulin was made by harvesting and grinding up the pancreases of dead pigs from slaughterhouses.",
-    "Some 24,000 pigs were needed to make just one pound of insulin, which could treat only 750 diabetics annually."
-  ]);
 
   // Sync ref whenever isPlaying changes:
   useEffect(() => {
@@ -60,6 +36,8 @@ export default function ReaderTab(
   }, [currentIndex, isPlaying]);
 
   useEffect(() => {
+    if (sentences.length === 0) return;
+
     // Reset readiness
     setIsTtsReady(false);
   
@@ -82,7 +60,6 @@ export default function ReaderTab(
 
   }, [currentIndex, sentences]);
 
-
  function toggleConversationMode() {
     speechSynthesis.cancel();
     setIsPlaying(false);
@@ -90,13 +67,31 @@ export default function ReaderTab(
  }
 
   // fetch article from the internet 
-  async function fetchArticle(url) {
-    
+  async function fetchArticle() {
+    if (!url.trim()) return; 
+    setLoading(true);
+
+    try {
+      const text = await window.electron.fetchArticle(url);
+      if (!text) throw new Error('No article content');
+
+      const sentences = splitSentences(text);
+      setSentences(sentences);
+      setCurrentIndex(0);
+    } catch (err) {
+      console.log(err);
+      alert(`Error fetching the article: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // split into sentences 
   function splitSentences(text) {
-
+    return text
+      .replace(/\r?\n+/g, ' ')
+      .split(/(?<=[.!?])\s+/)
+      .filter(s => s.trim().length > 0);
   }
 
   // play next sentence 

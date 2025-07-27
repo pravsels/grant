@@ -11,6 +11,9 @@ const wav = require('wav');
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+const { Readability } = require('@mozilla/readability');
+const { JSDOM } = require('jsdom');
+
 const fs = require('fs');
 const systemPrompt = fs.readFileSync(path.join(__dirname, 'system_prompt.txt'), 'utf-8');
 
@@ -149,6 +152,16 @@ ipcMain.handle('gemini-tts', async(_evt, text) => {
 
     return tmpPath;
 });
+
+ipcMain.handle('fetch-article', async (_evt, url) => {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`); 
+    const html = await response.text(); 
+
+    const dom = new JSDOM(html, { url });
+    const article = new Readability(dom.window.document).parse();
+    return article?.textContent || ''; 
+}); 
 
 ipcMain.handle('delete-tts-file', (_evt, filePath) => {
     fs.unlink(filePath, err => {

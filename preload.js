@@ -31,5 +31,20 @@ contextBridge.exposeInMainWorld('electron', {
         return ipcRenderer.invoke('gemini-tts', text)
     },
     deleteTTSFile: (filePath) => ipcRenderer.invoke('delete-tts-file', filePath),
+
+    fetchArticle: (maybeUrl) => {
+        let url;
+        try {
+          // this will throw if the string isn’t a valid URL
+          url = new URL(maybeUrl.trim());
+        } catch (err) {
+          return Promise.reject(new Error(`"${maybeUrl}" is not a valid URL`));
+        }
+        // only allow http(s)
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          return Promise.reject(new Error(`Unsupported protocol: ${url.protocol}`));
+        }
+        return ipcRenderer.invoke('fetch-article', url.toString());
+      }
 });
 
