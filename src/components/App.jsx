@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import ReaderTab from './ReaderTab';
+// import ReaderTab from './ReaderTab';
 import ChatTab from './ChatTab';
 
 export default function App() {
@@ -12,11 +12,11 @@ export default function App() {
     const [isStreaming, setIsStreaming] = useState(false);
 
     // reader tab state variables 
-    const [url, setUrl] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [sentences, setSentences] = useState([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
+    // const [url, setUrl] = useState('');
+    // const [loading, setLoading] = useState(false);
+    // const [sentences, setSentences] = useState([]);
+    // const [currentIndex, setCurrentIndex] = useState(0);
+    // const [isPlaying, setIsPlaying] = useState(false);
 
     return (
         <div 
@@ -32,12 +32,12 @@ export default function App() {
             
             <nav className="tab-nav">
                 <div className="tab-list">
-                    <button
+                    {/* <button
                         className={`tab-button ${mode==='reader' ? 'active':''}`}
                         onClick={() => setMode('reader')}
                     >
                         Reader
-                    </button>
+                    </button> */}
                     <button
                         className={`tab-button ${mode==='chat' ? 'active':''}`}
                         onClick={() => setMode('chat')}
@@ -58,17 +58,17 @@ export default function App() {
                       }}
             >
                 {
-                    mode === 'reader' ? <ReaderTab url={url}
-                                                   setUrl={setUrl}
-                                                   loading={loading}
-                                                   setLoading={setLoading}
-                                                   sentences={sentences}
-                                                   setSentences={setSentences}
-                                                   currentIndex={currentIndex}
-                                                   setCurrentIndex={setCurrentIndex}
-                                                   isPlaying={isPlaying}
-                                                   setIsPlaying={setIsPlaying}
-                                        /> : 
+                    // mode === 'reader' ? <ReaderTab url={url}
+                    //                                setUrl={setUrl}
+                    //                                loading={loading}
+                    //                                setLoading={setLoading}
+                    //                                sentences={sentences}
+                    //                                setSentences={setSentences}
+                    //                                currentIndex={currentIndex}
+                    //                                setCurrentIndex={setCurrentIndex}
+                    //                                isPlaying={isPlaying}
+                    //                                setIsPlaying={setIsPlaying}
+                    //                     /> : 
                                         <ChatTab messages={messages}
                                                  setMessages={setMessages}
                                                  inputText={inputText}
