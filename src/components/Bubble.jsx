@@ -42,63 +42,68 @@ export default function Bubble ({ role, content }) {
                             dangerouslySetInnerHTML={{ __html: value }} />
                     ),
 
-                    // Paragraphs—but if the paragraph only contains a code block (or pre),
-                    //    render a <div> so you don’t end up with <p><pre>…</pre></p>.
                     p: ({ node, children, ...props }) => {
-                        const onlyCode = 
+                        // drop the <p> if a paragraph only contains one child 
+                        const soloLine = 
                             node.children.length === 1 &&
-                            (node.children[0].type === 'code' || node.children[0].tagName === 'pre');
-                        if (onlyCode) {
-                            return <div {...props}>{children}</div>;
+                            ['inlineCode', 'inlineMath'].includes(node.children[0].type);
+
+                        if (soloLine) {
+                            return <>{children}</>;
                         }
                         return <p style={{ margin: '0.5rem 0' }} {...props}>{children}</p>;
                     },
 
-                    // Override how code renders
                     code({ inline, children, ...props }) {
-                    if (inline) {
-                        // Single-backtick code: `inline`
-                        return (
-                        <code
-                            style={{
-                            background: '#eee',
-                            padding: '0.2rem 0.4rem',
-                            borderRadius: 3,
-                            fontFamily: 'monospace',
-                            fontSize: '0.9em'
-                            }}
-                            {...props}
-                        >
-                            {children}
-                        </code>
-                        );
-                    }
-                    // Triple-backtick fenced code block
-                    return (
-                        <pre
-                            style={{
-                                background: '#FFFBEA',
-                                padding: '1rem',
-                                borderRadius: 6,
-                                overflowX: 'auto',
-                                fontSize: '0.85rem',
-                                lineHeight: 1.4
-                            }}
-                        >
-                            <code 
+                    
+                        const raw = (children[0] || '').toString();
+                        
+                        // is it a block that only contains one line ? 
+                        const lonelyFence = !inline && !raw.includes('\n');
+
+                        if (inline || lonelyFence) {
+                            // Single-backtick code: `inline`
+                            return (
+                            <code
                                 style={{
-                                    background: '#FFFBEA',
-                                    padding: '0.2rem 0.4rem',
-                                    borderRadius: 3,
-                                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                                    fontSize: '0.9em'
+                                background: '#eee',
+                                padding: '0.2rem 0.4rem',
+                                borderRadius: 3,
+                                fontFamily: 'monospace',
+                                fontSize: '0.9em'
                                 }}
-                                {...props} 
+                                {...props}
                             >
                                 {children}
                             </code>
-                        </pre>
-                    );
+                            );
+                        }
+                        // Triple-backtick fenced code block
+                        return (
+                            <pre
+                                style={{
+                                    background: '#FFFBEA',
+                                    padding: '1rem',
+                                    borderRadius: 6,
+                                    overflowX: 'auto',
+                                    fontSize: '0.85rem',
+                                    lineHeight: 1.4
+                                }}
+                            >
+                                <code 
+                                    style={{
+                                        background: '#FFFBEA',
+                                        padding: '0.2rem 0.4rem',
+                                        borderRadius: 3,
+                                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                                        fontSize: '0.9em'
+                                    }}
+                                    {...props} 
+                                >
+                                    {children}
+                                </code>
+                            </pre>
+                        );
                     }
                 }}
             >
