@@ -5,7 +5,26 @@
   "scripts": {
     "build": "webpack",
     "start": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.yourcompany.grant",
+    "productName": "Grant",
+    "asar": true,
+    "files": [
+      "web/**",
+      "!web/**/*.map",
+      "index.html",
+      "main.js",
+      "preload.js",
+      "system_prompt.txt",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": ".env", "to": ".env" }
+    ],
+    "mac": { "category": "public.app-category.productivity" }
   },
   "repository": {
     "type": "git",
@@ -26,6 +45,9 @@
     "babel-loader": "^10.0.0",
     "css-loader": "^7.1.2",
     "electron": "^37.2.3",
+    "electron-builder": "^26.0.12",
+    "esbuild": "^0.25.10",
+    "esbuild-loader": "^4.3.0",
     "style-loader": "^4.0.0",
     "webpack": "^5.100.2",
     "webpack-cli": "^6.0.1"

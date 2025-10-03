@@ -1,12 +1,20 @@
 
 // main.js 
-require('dotenv').config();
-
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const os = require('os');
 const tmp = require('path').join;
 const wav = require('wav');
+
+const envPath = app.isPackaged
+  ? path.join(process.resourcesPath, '.env')
+  : path.join(__dirname, '.env');
+require('dotenv').config({ path: envPath });
+
+if (app.isPackaged) {
+  process.env.NODE_ENV = 'production';
+}
+console.log('GEMINI_API_KEY length:', (process.env.GEMINI_API_KEY || '').length);
 
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -62,8 +70,9 @@ function createWindow() {
     // load html 
     window.loadFile(path.join(__dirname, 'index.html'));
 
-    // window.webContents.openDevTools({ mode: 'detach' });
-
+    if (!app.isPackaged) {
+        // window.webContents.openDevTools({ mode: 'detach' });
+    }
 }
 
 ipcMain.on('gemini-chat-start', async (event, messages) => {
