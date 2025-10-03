@@ -2,9 +2,6 @@
 // main.js 
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
-const os = require('os');
-const tmp = require('path').join;
-const wav = require('wav');
 
 const envPath = app.isPackaged
   ? path.join(process.resourcesPath, '.env')
@@ -18,9 +15,6 @@ console.log('GEMINI_API_KEY length:', (process.env.GEMINI_API_KEY || '').length)
 
 const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-const { Readability } = require('@mozilla/readability');
-const { JSDOM } = require('jsdom');
 
 const fs = require('fs');
 const systemPrompt = fs.readFileSync(path.join(__dirname, 'system_prompt.txt'), 'utf-8');
@@ -71,112 +65,67 @@ function createWindow() {
     window.loadFile(path.join(__dirname, 'index.html'));
 
     if (!app.isPackaged) {
-        // window.webContents.openDevTools({ mode: 'detach' });
+        window.webContents.openDevTools({ mode: 'detach' });
     }
 }
 
+const toParts = (m) => {
+  // If message already has parts array, use it
+  if (Array.isArray(m.parts) && m.parts.length) {
+    return m.parts;
+  }
+  // If there's text content, return it as a part
+  if (m.content && m.content.trim()) {
+    return [{ text: m.content.trim() }];
+  }
+  // Otherwise return empty array
+  return [];
+};
+
 ipcMain.on('gemini-chat-start', async (event, messages) => {
-    try {
-        const history = messages.slice(0, -1).map(msg => ({
-            role: msg.role === 'assistant' ? 'model' : msg.role,
-            parts: [{ text: msg.content }]
-        }));
-        
-        const currentMessage = messages[messages.length - 1];
-        
-        // Create chat with history
-        const chat = ai.chats.create({
-            model: 'gemini-2.5-flash-lite',
-            config: {
-                systemInstruction: systemPrompt,
-            },
-            history: history
-        });
-        
-        const stream = await chat.sendMessageStream({
-            message: currentMessage.content 
-        });
+  try {
+    console.log('=== RECEIVED MESSAGES ===');
+    console.log(JSON.stringify(messages, null, 2));
 
-        // forward chunks to renderer as they arrive 
-        for await (const chunk of stream) {
-            event.sender.send('gemini-chat-chunk', chunk);
-        }
-        
-        // when the stream ends, inform the renderer 
-        event.sender.send('gemini-chat-end');
+    const history = messages.slice(0, -1)
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: toParts(m),
+      }))
+      .filter(turn => turn.parts.length > 0);
 
-    } catch (err) {
-        event.sender.send('gemini-chat-error', err.message);
+    console.log('=== HISTORY ===');
+    console.log(JSON.stringify(history, null, 2));
+
+    const current = messages[messages.length - 1];
+    const parts = current.parts || toParts(current);
+
+    console.log('=== CURRENT PARTS ===');
+    console.log(JSON.stringify(parts, null, 2));
+    
+    if (parts.length === 0) {
+      event.sender.send('gemini-chat-error', 'Empty message: no text or attachments.');
+      return;
     }
+
+    const chat = ai.chats.create({
+      model: 'gemini-2.5-flash-lite',
+      config: { systemInstruction: systemPrompt },
+      history,
+    });
+
+    console.log('History:', JSON.stringify(history, null, 2));
+    console.log('Current parts:', JSON.stringify(parts, null, 2));
+
+    // Just pass the parts array directly
+    const stream = await chat.sendMessageStream(parts);
+
+    for await (const chunk of stream) event.sender.send('gemini-chat-chunk', chunk);
+    event.sender.send('gemini-chat-end');
+  } catch (err) {
+    event.sender.send('gemini-chat-error', err?.message || String(err));
+  }
 });
-
-ipcMain.handle('gemini-tts', async(_evt, text) => {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-preview-tts',
-        contents: [
-            { 
-                parts: [
-                    { text: text }
-                ] 
-            }
-        ],
-        config: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-                voiceConfig: {
-                    prebuiltVoiceConfig: {
-                        voiceName: 'Kore'
-                    }
-                }
-            }
-        }
-    });
-
-    const { candidates } = response;
-    if (!Array.isArray(candidates) || candidates.length === 0) {
-        throw new Error("TTS returned no candidates");
-    }
-
-    const { content } = candidates[0];
-    if (!content || !Array.isArray(content.parts) || content.parts.length === 0) {
-        throw new Error("TTS candidate has no parts");
-    }
-
-    // base64 encoded data 
-    const base64_chunk =  content.parts[0].inlineData.data;
-    const pcm_chunk = Buffer.from(base64_chunk, 'base64');
-
-    const tmpPath = tmp(os.tmpdir(), `tts-${Date.now()}.wav`);
-    await new Promise((res, rej) => {
-        const writer = new wav.FileWriter(tmpPath, {
-        channels: 1,
-        sampleRate: 24000,
-        bitDepth: 16
-        });
-        writer.on('finish', res);
-        writer.on('error', rej);
-        writer.write(pcm_chunk);
-        writer.end();
-    });
-
-    return tmpPath;
-});
-
-ipcMain.handle('fetch-article', async (_evt, url) => {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`); 
-    const html = await response.text(); 
-
-    const dom = new JSDOM(html, { url });
-    const article = new Readability(dom.window.document).parse();
-    return article?.textContent || ''; 
-}); 
-
-ipcMain.handle('delete-tts-file', (_evt, filePath) => {
-    fs.unlink(filePath, err => {
-      if (err) console.error('Failed to delete TTS file:', err);
-    });
-  });
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => app.quit());

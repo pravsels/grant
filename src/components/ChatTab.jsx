@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import Bubble from './Bubble';
 
 export default function ChatTab(
@@ -10,6 +10,25 @@ export default function ChatTab(
   }) {
   const messageListRef = useRef(null);
   const textInputRef = useRef(null);
+  const [attachments, setAttachments] = useState([]); 
+
+  // function that loads an image asynchronously and gives it a unique id, name and url 
+  const fileToDataUrl = (file) => (
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+
+      r.onerror = () => reject(r.error);  // if reading fails, reject the promise 
+      r.onload = () =>                    // when reading finishes 
+        resolve({
+          id: crypto.randomUUID(),        // unique id for preview 
+          name: file.name,                // original filename 
+          mime: file.type,                // e.g. "image/png"
+          dataUrl: r.result               // "data:image/png;base64,AAAA..."
+        }); 
+
+        r.readAsDataURL(file);
+    })
+  );
 
   // register onChunk callback once 
   useEffect(() => {
@@ -72,29 +91,45 @@ export default function ChatTab(
 
   const handleSend = () => {
     const text = inputText.trim();
-    if (!text) return;
-    // append user message 
-    setMessages(prevMsgs => [...prevMsgs, { role: 'user', content: text }]);
+    if (!text && attachments.length === 0) return;
+
+    const parts = attachments.length ? [
+      ...(text ? [{ text }] : []),
+      ...attachments.map(a => ({
+        inlineData: {
+          mimeType: a.mime || 'image/png',
+          data: String(a.dataUrl).split(',')[1],
+        }
+      }))
+    ] : (text ? [{ text }] : []);
+    
+    // Store the user message with parts
+    const userMessage = { 
+      role: 'user', 
+      content: text,
+      ...(parts.length > 0 && { parts })  // Only add parts if they exist
+    };
+    
+    setMessages(prevMsgs => [...prevMsgs, userMessage]);
     setInputText('');
     
-    // setTimeout(() => setIsStreaming(false), 500);
-    window.electron.startChat([
-      ...messages,
-      { role: 'user', content: text }
-    ]);
+    // Send ALL messages including the new one
+    window.electron.startChat([...messages, userMessage]);
+
+    // clear attachments after send 
+    setAttachments([]); 
     // set stream to get ready 
     setIsStreaming(true);
     // focus back on textbox 
     textInputRef.current?.focus();
   };
 
-  const handleDrop = e => {
+  const handleDrop = async (e) => {
     e.preventDefault();
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      console.log('File dropped : ', file.name);
-      // TODO: logic for sending text file, image, PDF 
-    }
+    const files = Array.from(e.dataTransfer.files || []).filter(f => f.type.startsWith('image/'));
+    if (!files.length) return; 
+    const items = await Promise.all(files.map(fileToDataUrl));
+    setAttachments(prev => [...prev, ...items]);
   };
 
   return (
@@ -154,6 +189,34 @@ export default function ChatTab(
         </div>
       </div>
       
+      {/* attachment previews */}
+      {!!attachments.length && (
+        <div style={{
+          display: 'flex', gap: 8, flexWrap: 'wrap',
+          padding: '8px 12px 0', alignItems: 'center'
+        }}>
+          {attachments.map(a => (
+            <div key={a.id} style={{
+              width: 56, height: 56, borderRadius: 12, overflow: 'hidden',
+              border: '1px solid #ddd', position: 'relative', background: '#fff'
+            }}>
+              <img src={a.dataUrl} alt={a.name}
+                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+              <button
+                onClick={() => setAttachments(prev => prev.filter(x => x.id !== a.id))}
+                title="Remove"
+                style={{
+                  position: 'absolute', top: -8, right: -8,
+                  width: 22, height: 22, borderRadius: '50%',
+                  border: 'none', background: '#000', color: '#fff',
+                  cursor: 'pointer', lineHeight: '22px', fontSize: 12
+                }}
+              >×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input area */}
       <div
         style={{
@@ -184,7 +247,7 @@ export default function ChatTab(
         />
         <button
           onClick={handleSend}
-          disabled={isStreaming || !inputText.trim()}
+          disabled={isStreaming || (!inputText.trim() && attachments.length === 0)}
           style={{
             padding: '0.5rem 1rem',
             borderRadius: '4px',
