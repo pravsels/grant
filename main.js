@@ -86,7 +86,7 @@ ipcMain.on('gemini-chat-start', async (event, messages) => {
         
         // Create chat with history
         const chat = ai.chats.create({
-            model: 'gemini-2.5-flash-lite',
+            model: 'gemini-2.5-pro',
             config: {
                 systemInstruction: systemPrompt,
             },

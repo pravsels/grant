@@ -29,3 +29,11 @@ To build and run the app, please use:
 ```
 npm start
 ```
+
+## Building for Distribution
+
+To create a distributable desktop application that can be installed:
+```
+npm run dist
+```
+This will create an installer/package in the `dist/` folder for your platform (`.dmg` on Mac, `.exe` on Windows, etc.).
