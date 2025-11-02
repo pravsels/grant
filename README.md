@@ -38,7 +38,7 @@ npm start
 
 ## Install as Desktop Application
 
-To create a desktop application that can be installed:
+To create a desktop application that can be installed, please run:
 ```
 npm run dist
 ```
