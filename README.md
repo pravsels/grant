@@ -36,7 +36,7 @@ To build and run the app, please use:
 npm start
 ```
 
-## Build to Install as Desktop Application
+## Install as Desktop Application
 
 To create a desktop application that can be installed:
 ```
