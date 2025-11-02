@@ -2,7 +2,14 @@
 
 An app where the AI never does anything for you. 
 
-It makes you learn, understand and do things instead. 
+It helps you learn and understand things deeply. 
+
+## What are some things it's good for ? 
+
+So far I've found it to be good for digesting papers and for slowing down and understanding a codebase. 
+
+![grant_3x](https://github.com/user-attachments/assets/614d0fd6-40ba-4d83-92a1-ca93e79a357c)
+
 
 ## Setting Up 
 
