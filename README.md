@@ -37,9 +37,9 @@ To build and run the app, please use:
 npm start
 ```
 
-## Building for Distribution
+## Build to Install as Desktop Application
 
-To create a distributable desktop application that can be installed:
+To create a desktop application that can be installed:
 ```
 npm run dist
 ```
