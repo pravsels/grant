@@ -1,4 +1,3 @@
-
 import React from 'react'; 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -14,18 +13,8 @@ export default function Bubble ({ role, content }) {
 
     return (
         <div
+            className={`bubble ${isUser ? 'user' : 'model'}`}
             onCopy={isUser ? undefined : e => e.preventDefault()}
-            style={{
-                alignSelf: isUser ? 'flex-end' : 'flex-start',
-                background: isUser ? '#dcf8c6' : '#fff',
-                padding: '0.75rem 1rem',
-                borderRadius: '1rem',
-                margin: '0.25rem 0',
-                maxWidth: '70%',
-                userSelect: isUser ? 'text' : 'none',
-                fontSize: '16px',
-                lineHeight: 1.55
-            }}
         >
             <ReactMarkdown
                 remarkPlugins={[remarkGfm, remarkMath]}
@@ -33,13 +22,11 @@ export default function Bubble ({ role, content }) {
                 components={{
                     // For display math (the $$…$$ blocks):
                     math: ({ value }) => (
-                    <span style={{ background: 'rgba(255,249,196,0.5)' }}
-                            dangerouslySetInnerHTML={{ __html: value }} />
+                    <span className="math-display" dangerouslySetInnerHTML={{ __html: value }} />
                     ),
                     // For inline math ($…$):
                     inlineMath: ({ value }) => (
-                    <code style={{ background: '#fff7c2', padding: '0 2px', borderRadius: '2px' }}
-                            dangerouslySetInnerHTML={{ __html: value }} />
+                    <code className="math-inline" dangerouslySetInnerHTML={{ __html: value }} />
                     ),
 
                     p: ({ node, children, ...props }) => {
@@ -51,58 +38,15 @@ export default function Bubble ({ role, content }) {
                         if (soloLine) {
                             return <>{children}</>;
                         }
-                        return <p style={{ margin: '0.5rem 0' }} {...props}>{children}</p>;
+                        return <p {...props}>{children}</p>;
                     },
 
                     code({ inline, children, ...props }) {
-                    
-                        const raw = (children[0] || '').toString();
-                        
-                        // is it a block that only contains one line ? 
-                        const lonelyFence = !inline && !raw.includes('\n');
-
-                        if (inline || lonelyFence) {
-                            // Single-backtick code: `inline`
-                            return (
-                            <code
-                                style={{
-                                background: '#eee',
-                                padding: '0.2rem 0.4rem',
-                                borderRadius: 3,
-                                fontFamily: 'monospace',
-                                fontSize: '0.9em'
-                                }}
-                                {...props}
-                            >
+                        // style is handled by CSS based on <pre> or <code> context
+                        return (
+                            <code {...props}>
                                 {children}
                             </code>
-                            );
-                        }
-                        // Triple-backtick fenced code block
-                        return (
-                            <pre
-                                style={{
-                                    background: '#FFFBEA',
-                                    padding: '1rem',
-                                    borderRadius: 6,
-                                    overflowX: 'auto',
-                                    fontSize: '0.85rem',
-                                    lineHeight: 1.4
-                                }}
-                            >
-                                <code 
-                                    style={{
-                                        background: '#FFFBEA',
-                                        padding: '0.2rem 0.4rem',
-                                        borderRadius: 3,
-                                        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                                        fontSize: '0.9em'
-                                    }}
-                                    {...props} 
-                                >
-                                    {children}
-                                </code>
-                            </pre>
                         );
                     }
                 }}

@@ -54,10 +54,8 @@
   },
   "dependencies": {
     "@google/genai": "^1.10.0",
-    "@mozilla/readability": "^0.6.0",
     "dotenv": "^17.2.0",
     "highlight.js": "^11.11.1",
-    "jsdom": "^26.1.0",
     "katex": "^0.16.22",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -65,7 +63,6 @@
     "rehype-highlight": "^7.0.2",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0",
-    "wav": "^1.0.2"
+    "remark-math": "^6.0.0"
   }
 }
