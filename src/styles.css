@@ -156,12 +156,56 @@ body {
   font-size: 1.125rem;
 }
 
+.input-area-wrapper {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border-color);
+  background: var(--input-bg);
+}
+
+.attachments-list {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem 0 1rem;
+  overflow-x: auto;
+}
+
+.attachment-pill {
+  display: flex;
+  align-items: center;
+  background: #eef;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  border: 1px solid #ccf;
+}
+
+.attachment-name {
+  max-width: 150px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 6px;
+}
+
+.attachment-remove {
+  background: transparent;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 0;
+}
+
+.attachment-remove:hover {
+  color: #d00;
+}
+
 .input-area {
   display: flex;
   padding: 1rem;
-  border-top: 1px solid var(--border-color);
   gap: 0.75rem;
-  background: var(--input-bg);
 }
 
 .chat-input {

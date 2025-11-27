@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 const callbacks = [];
 
@@ -24,5 +24,7 @@ contextBridge.exposeInMainWorld('electron', {
     // register a handler for incoming chunks / end / error 
     onChatStream: (cb) => {
         callbacks.push(cb);
-    }
+    },
+    // Helper to get file path in renderer with contextIsolation
+    getFilePath: (file) => webUtils.getPathForFile(file)
 });

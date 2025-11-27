@@ -34,5 +34,10 @@ module.exports = {
       }
     ],
   },
+  performance: {
+    hints: false,
+    maxEntrypointSize: 1024000, // 1MB
+    maxAssetSize: 1024000, // 1MB
+  },
   devtool: 'source-map',            // helpful for debugging
 };
