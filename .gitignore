@@ -6,9 +6,3 @@ dist/
 web/ 
 
 .env
-
-sessions/
-
-
-
-
