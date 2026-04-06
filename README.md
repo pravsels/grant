@@ -10,6 +10,10 @@ So far I've found it to be good for digesting papers and for slowing down and un
 
 ![grant_2x](https://github.com/user-attachments/assets/6e57d099-9b7f-4f56-aacd-47fe41c4b2c4)
 
+## Sessions
+
+Conversation sessions are saved to the `sessions/` directory.
+
 ## Setting Up 
 
 Download and install NVM:
