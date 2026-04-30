@@ -12,7 +12,16 @@ So far I've found it to be good for digesting papers and for slowing down and un
 
 ## Sessions
 
-Conversation sessions are saved to the `sessions/` directory.
+Each tab is a session. Transcripts are saved to `sessions/<DDMonthYYYY>/<timestamp>.txt` once the conversation passes 100 words. Rename a file to indicate its topic — the new name becomes your framing when it's summarized.
+
+## Memory
+
+When a tab closes (or the app quits, or on next launch as a safety net), one Gemini call produces:
+
+- A **summary** next to the transcript (`<name>.summary.md`) capturing what changed in the learner — threads, evidence, misconceptions, open questions.
+- An updated **`learner.md`** at the project root — a single bounded profile that is the only memory loaded into Grant's system prompt at the next session.
+
+Hand-edit `learner.md` to correct or pin things. Watch the terminal for `[summary] ...` lines.
 
 ## Setting Up 
 
