@@ -119,6 +119,8 @@ export default function App() {
 
     const closeTab = (e, idToClose) => {
       e.stopPropagation(); // prevent clicking the tab itself
+      window.electron.notifyTabClosed?.(idToClose);
+
       if (tabs.length === 1) {
         // Don't close the last tab, just reset it
         setTabs([{ id: Date.now(), title: 'New Chat', messages: [], inputText: '', isStreaming: false, attachments: [] }]);

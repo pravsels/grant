@@ -17,9 +17,35 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const soulPrompt = fs.readFileSync(path.join(__dirname, 'soul.md'), 'utf-8');
 const systemPrompt = fs.readFileSync(path.join(__dirname, 'system_prompt.txt'), 'utf-8');
-const fullSystemInstruction = `${soulPrompt}\n\n${systemPrompt}`;
+const learnerProfilePath = path.join(__dirname, 'learner.md');
 const sessionFilesByTab = new Map();
+const systemInstructionByTab = new Map();
 const MIN_TRANSCRIPT_WORDS = 100;
+const SUMMARIZATION_MODEL = 'gemini-3.1-pro-preview';
+
+function buildSystemInstruction() {
+  let learnerProfile = '';
+  try {
+    learnerProfile = fs.readFileSync(learnerProfilePath, 'utf-8').trim();
+  } catch (_) { /* file may not exist yet */ }
+
+  const profileBlock = learnerProfile
+    ? `\n\n## What you know about this learner\n\n${learnerProfile}`
+    : '';
+
+  return `${soulPrompt}\n\n${systemPrompt}${profileBlock}`;
+}
+
+// One snapshot per tab. learner.md is read on the first message of a session
+// and held fixed for the rest of that session. soul.md and system_prompt.txt
+// are already module-level constants; they're effectively snapshotted at app start.
+function getSystemInstructionFor(tabId) {
+  const cached = systemInstructionByTab.get(tabId);
+  if (cached) return cached;
+  const fresh = buildSystemInstruction();
+  systemInstructionByTab.set(tabId, fresh);
+  return fresh;
+}
 
 const monthNames = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -143,6 +169,162 @@ function saveSessionTranscript(tabId, messages, assistantContent = '', errorMess
   const filePath = getOrCreateSessionFile(tabId);
   const transcript = formatTranscript(messages, assistantContent, errorMessage);
   fs.writeFileSync(filePath, transcript, 'utf-8');
+}
+
+function topicHintFromPath(filePath) {
+  return path.basename(filePath, path.extname(filePath));
+}
+
+function summaryPathFor(transcriptPath) {
+  return transcriptPath.replace(/\.txt$/, '.summary.md');
+}
+
+function buildSummarizationPrompt({ transcript, learnerProfile, topicHint }) {
+  const profileBlock = learnerProfile && learnerProfile.trim()
+    ? learnerProfile.trim()
+    : '(empty — this is the first session)';
+
+  return `You just finished a tutoring session as Grant. Produce two outputs.
+
+CONTEXT
+The learner named this session: "${topicHint}"
+Treat this as the learner's own framing — it may or may not match what actually happened.
+
+CURRENT learner.md:
+${profileBlock}
+
+TRANSCRIPT:
+${transcript}
+
+OUTPUT 1 — summary_md (markdown)
+
+Do NOT produce a list of topics covered. Topic lists are forbidden.
+
+For each meaningful thread in the session, write:
+- The question, in the learner's own framing.
+- Where they started (prior model / misconception).
+- What unlocked it (the framing, example, or picture that worked).
+- Where they ended (what they can now predict, sketch, or teach back).
+- Evidence level: strong | wobbly | unverified
+    strong     — predicted a new case, taught it back, or transferred it
+    wobbly     — restated it, but not tested on transfer
+    unverified — they nodded; no real signal (be honest)
+
+Then add sections:
+- Surfaced misconceptions
+- Open threads (questions raised but not closed)
+- Style signals from this session
+
+OUTPUT 2 — learner_md (markdown, will overwrite the file)
+
+Rewrite learner.md integrating what is genuinely new. Keep under ~1500 words.
+Maintain these sections:
+- Current focus
+- What you've internalized  (only items with strong evidence)
+- Open threads / things to revisit
+- Misconceptions seen
+- Style notes
+
+Prune what is stale or superseded. Do not pad. Be specific, not generic.
+
+Return as JSON: { "summary_md": "...", "learner_md": "..." }`;
+}
+
+function relPath(p) {
+  return path.relative(__dirname, p);
+}
+
+async function summarizeSession(transcriptPath) {
+  const transcript = fs.readFileSync(transcriptPath, 'utf-8');
+  const rel = relPath(transcriptPath);
+
+  if (countWords(transcript) < MIN_TRANSCRIPT_WORDS) {
+    console.log(`[summary] skip: ${rel} (under ${MIN_TRANSCRIPT_WORDS} words)`);
+    return;
+  }
+
+  let learnerProfile = '';
+  try { learnerProfile = fs.readFileSync(learnerProfilePath, 'utf-8'); } catch (_) { /* may not exist */ }
+
+  const prompt = buildSummarizationPrompt({
+    transcript,
+    learnerProfile,
+    topicHint: topicHintFromPath(transcriptPath),
+  });
+
+  console.log(`[summary] start: ${rel}`);
+  const t0 = Date.now();
+
+  const response = await ai.models.generateContent({
+    model: SUMMARIZATION_MODEL,
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'object',
+        properties: {
+          summary_md: { type: 'string' },
+          learner_md: { type: 'string' },
+        },
+        required: ['summary_md', 'learner_md'],
+      },
+    },
+  });
+
+  const { summary_md, learner_md } = JSON.parse(response.text);
+  fs.writeFileSync(summaryPathFor(transcriptPath), summary_md, 'utf-8');
+  fs.writeFileSync(learnerProfilePath, learner_md, 'utf-8');
+
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`[summary] done:  ${rel} (${elapsed}s, learner.md updated)`);
+}
+
+async function summarizeIfNeeded(transcriptPath) {
+  if (fs.existsSync(summaryPathFor(transcriptPath))) return;
+  try {
+    await summarizeSession(transcriptPath);
+  } catch (err) {
+    console.error(`[summary] FAIL: ${relPath(transcriptPath)} —`, err.message || err);
+  }
+}
+
+async function sweepUnsummarized() {
+  const root = getSessionsRoot();
+  if (!fs.existsSync(root)) return;
+
+  const dayDirs = fs.readdirSync(root, { withFileTypes: true })
+    .filter(d => d.isDirectory())
+    .map(d => path.join(root, d.name));
+
+  // Collect all transcripts across folders and sort chronologically by birth time
+  // so learner.md evolves in the order the sessions actually happened.
+  const all = [];
+  for (const dir of dayDirs) {
+    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.txt'))) {
+      const full = path.join(dir, f);
+      all.push({ full, birth: fs.statSync(full).birthtimeMs });
+    }
+  }
+  all.sort((a, b) => a.birth - b.birth);
+
+  const pending = all.filter(t => !fs.existsSync(summaryPathFor(t.full)));
+  if (pending.length === 0) {
+    console.log(`[summary] sweep: nothing to do (${all.length} session(s) all summarized)`);
+    return;
+  }
+  console.log(`[summary] sweep: ${pending.length} of ${all.length} session(s) need summarizing`);
+
+  for (const { full } of pending) {
+    // Skip files currently being written to by a live session.
+    const openPaths = new Set(sessionFilesByTab.values());
+    if (openPaths.has(full)) {
+      console.log(`[summary] sweep: skipping live session ${relPath(full)}`);
+      continue;
+    }
+    await summarizeIfNeeded(full);
+  }
+
+  console.log(`[summary] sweep: complete`);
 }
 
 function getChunkText(chunk) {
@@ -292,7 +474,7 @@ ipcMain.on('gemini-chat-start', async (event, { messages, tabId }) => {
         const chat = ai.chats.create({
             model: 'gemini-3.1-pro-preview',
             config: {
-                systemInstruction: fullSystemInstruction,
+                systemInstruction: getSystemInstructionFor(tabId),
             },
             history: history
         });
@@ -327,5 +509,27 @@ ipcMain.on('gemini-chat-start', async (event, { messages, tabId }) => {
     }
 });
 
-app.whenReady().then(createWindow);
+ipcMain.on('tab-closed', (_event, { tabId }) => {
+    const filePath = sessionFilesByTab.get(tabId);
+    sessionFilesByTab.delete(tabId);
+    systemInstructionByTab.delete(tabId);
+    if (filePath && fs.existsSync(filePath)) {
+        console.log(`[summary] tab-close: ${relPath(filePath)}`);
+        summarizeIfNeeded(filePath);
+    }
+});
+
+app.on('before-quit', () => {
+    const open = [...sessionFilesByTab.values()].filter(p => fs.existsSync(p));
+    if (open.length === 0) return;
+    console.log(`[summary] quit: summarizing ${open.length} open session(s)`);
+    for (const filePath of open) {
+        summarizeIfNeeded(filePath);
+    }
+});
+
+app.whenReady().then(() => {
+    createWindow();
+    sweepUnsummarized().catch(err => console.error('Sweep failed:', err));
+});
 app.on('window-all-closed', () => app.quit());

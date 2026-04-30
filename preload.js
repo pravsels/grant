@@ -26,5 +26,7 @@ contextBridge.exposeInMainWorld('electron', {
         callbacks.push(cb);
     },
     // Helper to get file path in renderer with contextIsolation
-    getFilePath: (file) => webUtils.getPathForFile(file)
+    getFilePath: (file) => webUtils.getPathForFile(file),
+    // Tell main a tab was closed so it can summarize the session
+    notifyTabClosed: (tabId) => ipcRenderer.send('tab-closed', { tabId })
 });
