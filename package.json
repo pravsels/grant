@@ -17,6 +17,7 @@
       "!web/**/*.map",
       "index.html",
       "main.js",
+      "chunkText.js",
       "sessionPaths.js",
       "transcriptFormat.js",
       "preload.js",

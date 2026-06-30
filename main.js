@@ -9,6 +9,7 @@ const {
   summaryPathFor,
 } = require('./sessionPaths');
 const { formatTranscript } = require('./transcriptFormat');
+const { getChunkText } = require('./chunkText');
 
 const envPath = app.isPackaged
   ? path.join(process.resourcesPath, '.env')
@@ -265,13 +266,6 @@ async function sweepUnsummarized() {
   console.log(`[summary] sweep: complete`);
 }
 
-function getChunkText(chunk) {
-  const parts = chunk?.candidates?.[0]?.content?.parts || [];
-  return parts
-    .map(part => part?.text || '')
-    .join('');
-}
-
 function createWindow() {
 
     const window = new BrowserWindow({
@@ -430,7 +424,7 @@ ipcMain.on('gemini-chat-start', async (event, { messages, tabId }) => {
                 assistantResponse += chunkText;
                 saveSessionTranscript(tabId, messages, assistantResponse);
             }
-            event.sender.send('gemini-chat-chunk', { chunk, tabId });
+            event.sender.send('gemini-chat-chunk', { chunk, chunkText, tabId });
         }
 
         saveSessionTranscript(tabId, messages, assistantResponse);

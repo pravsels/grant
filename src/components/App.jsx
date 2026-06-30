@@ -33,7 +33,8 @@ export default function App() {
             }
             if (type === 'chunk') {
               const chunk = payload.chunk;
-              let chunkText = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+              const parts = chunk?.candidates?.[0]?.content?.parts || [];
+              let chunkText = payload.chunkText ?? parts.map(part => part?.text || '').join('');
               if (!chunkText) return tab;
 
               const msgs = tab.messages;
