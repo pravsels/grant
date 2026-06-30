@@ -2,6 +2,7 @@
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { formatDayFolder, padNumber } = require('./sessionPaths');
 
 const envPath = app.isPackaged
   ? path.join(process.resourcesPath, '.env')
@@ -47,21 +48,8 @@ function getSystemInstructionFor(tabId) {
   return fresh;
 }
 
-const monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
-
-function padNumber(value, length = 2) {
-  return String(value).padStart(length, '0');
-}
-
 function getSessionsRoot() {
   return path.join(__dirname, 'sessions');
-}
-
-function formatDayFolder(date) {
-  return `${date.getDate()}${monthNames[date.getMonth()]}${date.getFullYear()}`;
 }
 
 function formatTimestampFile(date) {

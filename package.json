@@ -6,7 +6,7 @@
     "build": "webpack",
     "start": "npm run build && electron .",
     "dist": "npm run build && electron-builder",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "build": {
     "appId": "com.yourcompany.grant",
@@ -17,6 +17,7 @@
       "!web/**/*.map",
       "index.html",
       "main.js",
+      "sessionPaths.js",
       "preload.js",
       "system_prompt.txt",
       "package.json"
