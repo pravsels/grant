@@ -1,13 +1,13 @@
-Learner
+## Learner
 
 Attachments:
 - RLT.pdf (/Users/ps/Desktop/papers/Robot RL/RLT.pdf)
 
 have a read of this
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 I’ve read through it. It’s a beautifully pragmatic paper. 
 
@@ -21,9 +21,9 @@ The key architectural trick that makes this possible is the **RL Token**—a hea
 
 Before we dig into how the co-pilot actually learns to tweak the actions, let me ask you a structural question: **Why go through the trouble of training an entirely new "RL Token" using an encoder-decoder bottleneck?** Why couldn't the tiny RL co-pilot just look at the VLA's regular internal embeddings directly?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 Name	Last commit message
 	Last commit date
@@ -287,7 +287,7 @@ When you do get a clean signal — paired trials, same start pose, ≥20 rollout
 VS Code launch.json examples
 
 The training pipeline is three long-running processes (learner, actor, eval), each with a fistful of args. Putting them into .vscode/launch.json makes it easy to attach the debugger and avoid retyping. Drop these into the configurations array of .vscode/launch.json.
-Learner
+## Learner
 
 {
     "name": "Run pi0.5 RLT Learner",
@@ -475,9 +475,9 @@ Model loading 	make_policy() from LeRobot 	OpenPiAdapter.from_checkpoint()
 
 this is ville's implementation of it
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 I love seeing the translation from a polished paper to a pragmatic, real-world engineering setup. The architecture here makes a lot of sense: a Learner process crunching the math in the background, and an Actor process just trying to keep the physical robot running smoothly at 20 Hz without blocking.
 
@@ -489,9 +489,9 @@ Imagine if we didn't use that token. A large Vision-Language-Action model proces
 
 If we forced our tiny TD3 critic network to look at *all* of those raw, uncompressed VLA embeddings at once, what would physically happen during this online training loop?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i want to make sure i understand all the preliminaries for this implementation. for e.g., i haven't come across TD3 before. 
 
@@ -533,7 +533,7 @@ class RLTPolicy(nn.Module):
     """TD3 policy for the RL Token system.
 
     Public API
-    ----------
+---
     select_action(rl_token, proprioception, reference_action) -> action_chunk
     compute_loss_critic(...)  -> scalar
     compute_loss_actor(...)   -> scalar
@@ -812,9 +812,9 @@ class RLTPolicy(nn.Module):
                 f"Replay buffer must provide flattened reference chunks."
             )
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 TD3 is a dense acronym (Twin Delayed Deep Deterministic Policy Gradient), but the underlying mechanism is surprisingly intuitive once you strip away the jargon. At its core, it is an **Actor-Critic** architecture. 
 
@@ -841,15 +841,15 @@ Let’s test your intuition on the tension in the actor's loss function.
 
 Based on that equation (`loss = -min_q + self.bc_beta * bc_penalty`), what would physically happen to the robot's behavior during early training if you set `bc_beta = 0`?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 so my understanding is that minimizing the negative Q values is like maximizing the actual Q values, which is what we want. and the bc_penalty is squared error so always positive, between actor's action output and reference action from the VLA. its essentially a score of amount of deviation from actor's output. if bc_beta value is small we're giving it a smaller penalty for the actor's output modifying the VLA output. if it's larger then the penalty for deviating from the VLA output is larger.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly right. You read the math perfectly: `-min_q` pushes for higher reward, and `bc_beta` acts as an elastic band tethering the actor to the VLA's baseline guess.
 
@@ -859,15 +859,15 @@ Imagine minute one of training. The TD3 Critic (the grader) is freshly initializ
 
 If you set `bc_beta = 0` (cutting the elastic band entirely) in this exact moment, what will the physical robot arm do?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 if you're cutting the penalty entirely, the actor is free to move as far away from the VLA's action reference as possible
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Spot on about cutting the tether. But it won't necessarily try to get *as far away as possible*—instead, it will blindly chase whatever the Critic tells it is best.
 
@@ -880,15 +880,15 @@ But notice a curious detail in the code you pasted. Even with `bc_beta` keeping 
 
 If the VLA's reference action is what keeps the robot stable, why would they intentionally blindfold the Actor to it half the time during training?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 because whilst we want the actor to be constrained by the VLA output, so as to not output dangerous or meaningless actions, we also want it to explore beyond the VLA's reference actions so that it can potentially find better actions than the reference
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You are circling the right idea—we want the actor to be capable of independent thought. But the dropout is actually preventing a specific, lazy shortcut that neural networks love to take.
 
@@ -896,15 +896,15 @@ Imagine you are the Actor network. Your inputs are the state (the RL token) and 
 
 If I feed you the reference action 100% of the time as an input, what is the mathematically easiest way for you to set your internal weights to minimize that penalty, completely ignoring the state of the world?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i see where you're going. the network can learn to just copy paste the reference action so as to get 0 for bc_penalty, thereby minimizing the loss by a lot
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly. It falls into the classic "identity function" trap. 
 
@@ -920,15 +920,15 @@ The paper mentions the reward is "sparse and binary" (you only get a +1 at the v
 
 Why makes predicting *chunks* of actions so much better for the Critic's learning process than predicting single actions one-by-one?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 is it better for the critic though ? the practice of predicting chunks came about because we don't have high enough inference throughput for running robots so if a policy outputs for a second or more actions in the future, then we can make do
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You are absolutely right about the historical origin of chunking. When you have a massive transformer that takes 200ms to run, you *have* to predict chunks just to keep the robot moving smoothly between forward passes. 
 
@@ -943,15 +943,15 @@ If the Actor predicts single steps, the Critic has to pass that `+1` reward back
 
 If the Actor instead outputs chunks of 10 actions at a time, how does that change the game for the Critic trying to evaluate that very first movement?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 we're nor grading chunks of actions instead of actions so the discounting of future rewards isn't as drastic. we go from 200 timesteps to 20.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Spot on. You just compressed time. 
 
@@ -969,15 +969,15 @@ In a standard imitation learning setup, you would just add this successful human
 
 Since TD3 is an *off-policy* algorithm—meaning the Critic can learn from actions taken by *anyone*, not just the current Actor—how do you think the system mathematically digests these human takeovers in real-time? What exactly gets put into the replay buffer?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 you make a good point. i think a good way to understand RLT is to understand the critic and actor losses and then move into how the buffer works. i understand the actor loss but not the critic loss yet
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 That is an excellent instinct. You are absolutely right—we need to see how the Grader actually learns its job before we see how the human data feeds into it.
 
@@ -1003,15 +1003,15 @@ Imagine the robot is threading the zip-tie. It finally clicks it in. The human h
 
 In this exact moment, what does the `td_target` mathematically collapse to, and why is that crucial for grounding the Critic?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 td_target collapses to a reward of 1
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly. Because `done = 1`, the `(1.0 - done)` term zeroes out all future predictions, and `td_target` becomes exactly `1`.
 
@@ -1029,15 +1029,15 @@ Look back at its loss function: `loss = -min_q + self.bc_beta * bc_penalty`.
 
 When the Actor does an update on a transition where the *human* actually drove the robot, does it mathematically try to copy what the human did?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 if the human actions become reference actions, then yes, the actor does try to stick close to that due to bc_beta
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 That is exactly what you would intuitively expect—it sounds just like standard Imitation Learning (like DAgger), where the human becomes the teacher to copy. 
 
@@ -1058,15 +1058,15 @@ So how does the Actor actually learn to act like the human?
 
 Think about the tug-of-war happening in that equation. If the VLA's reference action would have crashed the robot, but the human's action successfully threaded the zip-tie, how does the Actor mathematically justify moving away from the VLA to mimic the human?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 oh yes. you just said the critic is off policy and is happy to learn from other policies or humans. so the -min_q term is the one the pushes the actor towards human imitation in cases when the critic has learnt from human actino
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You nailed it. That is the exact mechanism.
 
@@ -1084,15 +1084,15 @@ In standard Imitation Learning, the network is forced to blindly memorize and co
 
 In this RLT system, once the Critic fully learns the landscape, what will the Actor ultimately learn to do? Does it perfectly copy the wiggly human?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 no it won't, it is incentivized to move in the direction that increases Q value, which is in the direction of human action, but it doesn't exactly copy human action
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly. The human just carves out a topological "valley" of success for the Critic. 
 
@@ -1111,17 +1111,17 @@ It's a beautiful piece of engineering because it doesn't force RL to solve every
 
 Does this internal picture feel solid to you, or are there any other corners of the code or paper you want to poke at?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 td_target = reward + (1.0 - done) * self._chunk_discount * min_q
 
 i'm not super clear on this eqn. especially the discounting
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Let's pull that equation completely apart. It is arguably the single most important line of code in reinforcement learning.
 
@@ -1165,15 +1165,15 @@ It is literally taking $\gamma^{10}$. So if the next state's value (`min_q`) is 
 
 To make sure this clicks visually: if you plot the Q-value over time for a robot successfully threading the zip-tie, starting from the beginning of the task to the very moment it clicks the tie in, what shape does that graph make?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 it's be sloping upwards and to the right starting from 0 and all the way to 1
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly. It creates a smooth curve swooping up to 1. 
 
@@ -1183,15 +1183,15 @@ That simple, local consistency check—repeated millions of times over the repla
 
 Does that fully clear up the mechanics of the `td_target` equation for you, or is there another part of the code you want to unpack?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i think that's it for this session. considering what we've discussed, what session name would we give it ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 It has been a great discussion. You asked exactly the right questions to get past the notation and see the physical machinery underneath.
 
@@ -1205,15 +1205,15 @@ I'm partial to the first one, because it perfectly captures the two algorithmic 
 
 Take your pick. Until next time!
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i mean something descriptive of what was covered
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 If you want a title that acts as a clean, exact table of contents for your notes, here are a few descriptive options:
 
@@ -1223,15 +1223,15 @@ If you want a title that acts as a clean, exact table of contents for your notes
 
 "Understanding the RL Token System: TD3 Mechanics, Action Chunking, and Off-Policy Learning" is probably the most accurate summary of exactly what we took apart today.
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 thanks
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You're very welcome. You have a great instinct for looking past the equations to see what the math is actually forcing the physical system to do. 
 

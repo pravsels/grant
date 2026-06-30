@@ -1,13 +1,13 @@
-Learner
+## Learner
 
 Attachments:
 - pistar06.pdf (/home/user/Downloads/pistar06.pdf)
 
 in this paper i totally misunderstood the advantage conditioning and i assumed that all i need to do is add "advantage: positive" or "advantage: negative" to the text prompt. it then turns out that i need to do some classifier-free guidance stuff
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You actually weren't entirely wrong! During training, they *literally do* just append "Advantage: positive" or "Advantage: negative" to the text prompt. 
 
@@ -23,15 +23,15 @@ This is where CFG comes in. Instead of just looking at the "good" cluster, we dr
 
 If we visualize this as an arrow pointing from the average behavior toward the optimal behavior, what do you think physically happens to the robot's actions if we turn that $\beta$ dial up way too high?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 before we get into it, how did CFG even come about ? why was it necessary ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Let’s rewind a few years to when AI image generation was just starting to get incredibly good. The goal was to tell a model to generate something specific, like a "corgi," and have it actually listen.
 
@@ -49,15 +49,15 @@ This purely geometric trick—extrapolating the difference between a conditioned
 
 Which brings us back to the robot in this paper. If the unconditioned prediction is just "average robot behavior," and the conditioned prediction is "robot behavior when the advantage is positive," what exactly does that arrow represent when we subtract the two?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 what does 'mathematical gradient' mean ? can we briefly cover classifier guidance
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Imagine you are standing blindfolded on the side of a bumpy hill, and you want to reach the very top. You can't see the peak, but you can feel the ground right around your feet. 
 
@@ -83,15 +83,15 @@ Which brings us right back to the robot in this paper.
 
 If the model predicts one action representing "average robot behavior" (unconditioned), and another action representing "behavior when the advantage is positive" (conditioned), what does the arrow pointing from the first to the second represent?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i want to drill down on how i can go from an input image to classifier score to getting a 'gradient'
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 It helps to picture the input image not as a picture, but as a giant control board with thousands of little sliders. If it's a small grayscale image, you have 10,000 sliders, each controlling the brightness of one specific pixel.
 
@@ -118,15 +118,15 @@ Normally, in machine learning, we use gradients to update the *internal weights*
 
 Does that make the mechanical link between the score and the image feel a bit more concrete? If so, we can see exactly why this process creates monsters if you push it too far. What do you think happens if the classifier has learned that "orange pixels = corgi fur", and you just keep blindly adding the gradient to the image over and over?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 yes but can you show me the formula of the gradient from a classifier for an image ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Let’s look at the exact mathematical expression. It is actually surprisingly compact. 
 
@@ -153,15 +153,15 @@ You do this over and over, stepping up the mathematical hill.
 
 Now that you see the formula, think about what happens if we just keep doing this indefinitely. If the classifier has learned a shortcut—say, that "orange pixels = corgi fur"—what does that $\nabla_x$ operator do to the image if we keep following it without bounds?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 keeps making the image more and more orange. btw, how would i take gradient of the logprob w.r.t the image ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly right. It just blasts the image with orange pixels until it becomes a deep-fried, adversarial nightmare. 
 
@@ -180,15 +180,15 @@ In a framework like PyTorch, you literally just tell the image variable to track
 
 So, if Classifier Guidance is just tracking this backward-flowing math derivative—and we know that leads to orange nightmares—how do you think Classifier-*Free* Guidance manages to steer the image without ever calculating this specific gradient?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 like you told me before. it conditions generation with the corgi text and then it also runs generation without any condition and it gets the difference between the 2 to point in the direction of corgi. then it can apply a weight to this direction to say "move more in this corgi direction"
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Spot on. You just bypassed the separate critic entirely. You stay completely inside the generative model's own understanding of the world, which naturally prevents it from creating those deep-fried adversarial nightmares.
 
@@ -204,15 +204,15 @@ But for this to work, the single neural network needs to know how to predict act
 
 If you were the researcher training this model on a giant dataset of robot videos, how would you force the network to learn both the conditioned and the unconditioned behaviors at the same time?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 well i already know how CFG is trained. i think during training they run it 'unconditioned' like 30% of the time.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You nailed it. In fact, you hit the exact number from the paper—in Appendix F, they mention dropping the advantage indicator exactly 30% of the time. 
 
@@ -228,15 +228,15 @@ But just like making a dog image "too corgi" causes weird visual artifacts, extr
 
 Imagine a robotic arm moving to grasp a cup. If we turn that $\beta$ dial up too high—pushing that mathematical arrow far past the actual training data—what physical behavior would you expect to see from the robot?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 honestly don't know. maybe it tries to grasp fast or grasp harder ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You hit the nail on the head. That is exactly what happens. 
 
@@ -254,15 +254,15 @@ So your initial intuition wasn't a misunderstanding at all—it was just the spe
 
 Does the shape of this whole system—from images of corgis to robots folding laundry—feel a bit clearer now?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 yep it does. now i'm curious about the training. when you say you don't have the advantage prompt 30% of the time, but we still do CFG, what does that look like ? does that mean 70% of the time we calculate both, then get the difference between them and set a guidance weight to move in that direction. and then 30% of the time, we don't have the advantage prompt or the guidance. we simply let it run ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Ah, this is a crucial distinction to make. You just perfectly described what happens at *inference time*—when the robot is actually operating in the real world.
 
@@ -278,15 +278,15 @@ The CFG math—the calculating both, the subtracting, and the $\beta$ multiplier
 
 If we never blanked out the prompt during training, what would happen when we try to do the CFG subtraction trick in the real world?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 btw, which equations in the paper are related to CFG ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 The paper lays this out beautifully in two specific places. 
 
@@ -314,15 +314,15 @@ This is the literal algebraic translation of moving past the average data toward
 
 Now, look at Equation 2 again. If you set $\beta = 1$ (no extra guidance, just normal generation), what mathematically happens to the unconditioned terms?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 when you say unconditioned what you mean is we still have the text language prompt l, that says what the task is, we just don't add the advantage text. am i right ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You are exactly right. You hit on a really subtle and important point that often confuses people when they read this paper.
 

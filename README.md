@@ -12,7 +12,7 @@ So far I've found it to be good for digesting papers and for slowing down and un
 
 ## Sessions
 
-Each tab is a session. Transcripts are saved to `sessions/<YYYY-MM-DD_D-Month-YYYY>/<timestamp>.txt` once the conversation passes 100 words. Rename a file to indicate its topic — the new name becomes your framing when it's summarized.
+Each tab is a session. Transcripts are saved to `sessions/<YYYY-MM-DD_D-Month-YYYY>/<timestamp>.md` once the conversation passes 100 words. Rename a file to indicate its topic — the new name becomes your framing when it's summarized.
 
 ## Memory
 

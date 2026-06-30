@@ -16,7 +16,22 @@ function formatDayFolder(date) {
   return `${year}-${month}-${day}_${readableDate}`;
 }
 
+function formatTimestampFile(date) {
+  return `${padNumber(date.getHours())}-${padNumber(date.getMinutes())}-${padNumber(date.getSeconds())}-${padNumber(date.getMilliseconds(), 3)}.md`;
+}
+
+function summaryPathFor(transcriptPath) {
+  return transcriptPath.replace(/\.(txt|md)$/, '.summary.md');
+}
+
+function isTranscriptFile(fileName) {
+  return (fileName.endsWith('.md') || fileName.endsWith('.txt')) && !fileName.endsWith('.summary.md');
+}
+
 module.exports = {
   formatDayFolder,
+  formatTimestampFile,
+  isTranscriptFile,
   padNumber,
+  summaryPathFor,
 };

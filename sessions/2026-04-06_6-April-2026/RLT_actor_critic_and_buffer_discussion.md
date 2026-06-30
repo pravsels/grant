@@ -1,13 +1,13 @@
-Learner
+## Learner
 
 Attachments:
 - RLT.pdf (/Users/ps/Desktop/papers/Robot RL/RLT.pdf)
 
 i'm ok with the RLT encoder-decoder part. i need to understand well enough to get to the actor-critic part. what might i need to set things up. do i need a ton of on policy data like inputs to the model and embedding outputs as well as action output that can then be shown to the critic to grade ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 To answer your question directly: no, you don't need a ton of strictly *on-policy* data. In fact, relying only on on-policy data would make the training far too slow for a real robot. 
 
@@ -37,15 +37,15 @@ To make sure this architecture clicks for you, consider a thought experiment:
 
 Imagine it is minute one of training. The Critic is basically initialized with random weights, meaning its "grades" are total garbage. If the Actor's *only* goal was to maximize the Critic's score right out of the gate, what would happen to the robot's physical movements? And looking at how this system is set up, what specific mechanism prevents the robot from just flailing wildly while the Critic is still learning?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i do have dagger datasets of on policy state and actions and then human interventions. but the RL token is derived from the model embeddings.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You have hit on exactly the right structural dependency. There is a chicken-and-egg problem here: your Actor and Critic need RL tokens to learn, but the RL token doesn't exist natively in your raw DAgger data.
 
@@ -71,15 +71,15 @@ To make sure the mechanics of this Replay Buffer are sitting cleanly in your min
 
 When your dataset contains a moment of human intervention, your Actor still receives the VLA's reference action as an input, but the Critic evaluates the *human's* executed action. Why is it structurally crucial for the Actor to still see the VLA's "wrong" reference action during a transition where the human took over?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i don't know. i'm actually now clear on how a critic starts from scratch and learns to grade state, action
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 (Assuming you meant you are *not* clear on how the critic learns—it is a notoriously slippery concept to hold in your head, so let's pin it down.)
 
@@ -104,15 +104,15 @@ Over thousands of updates, that single `1` at the finish line ripples backward, 
 
 Given this backward-rippling mechanism, why is it so mathematically crucial that you pre-fill your Replay Buffer with those successful DAgger human interventions *before* the Actor starts randomly flailing around?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 because it needs to have 'lit up' some of the state/action pathways in order to be able to start doing sensible things
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly. You nailed it. 
 
@@ -132,15 +132,15 @@ To make sure you see why both forces are necessary, consider the ablation study 
 
 Suppose we cut the leash entirely (setting $\beta = 0$), meaning the Actor *only* tries to maximize the Critic's score. Knowing that the Critic is just a neural network guessing the value of pathways—and that it has only seen a tiny sliver of the actual real-world physics—what do you suspect physically happens to the robot when the Actor is allowed to blindly chase high Critic scores without being tethered to the VLA?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 it might start making erratic movements since like you've said, it hasn't explored real world physics well enough and its actually a very small NN to learn this by itself
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You are exactly right. This is a famous failure mode in RL called "overestimation bias" or "critic exploitation."
 
@@ -160,15 +160,15 @@ Instead of outputting 1 single action at a time, the Actor outputs a "chunk" of 
 
 Think back to how the Critic learns by "gossiping" the reward backward down the unlit hallway. If the Actor outputs chunks of 10 actions instead of 1, how does that mathematically alter the unlit hallway the Critic has to ripple the reward down, and why is that so crucial for learning?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 for every state you are taking a horizon of actions instead of one action per state. idk how that changes things though
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You have the exact right definition. Let's look at the geometry of what that does to our unlit hallway.
 
@@ -188,15 +188,15 @@ We have now walked through the entire architecture: the RL Token to compress the
 
 If you were explaining this to a teammate tomorrow, and you had to summarize the overarching philosophy of this paper—*why* they built this complex interplay instead of just training a standard RL agent from scratch—how would you compress the core idea into a sentence or two?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 we have a base policy like pi05. we can do RL on top of this to make it better for certain tasks. but tuning a big model is not easy, plus RL has sparse rewards. what if you tune the weights and make it bad, this isn't ideal because a base model is trained on large amounts of data and ruining it for RL on one task is stupid. this paper comes up with an element solution. we latch on a small actor-critic model on top of the base model that can take outputs from pi05 both its action chunk and it's embeddings and learn to get better at a particular task using dagger like human intervention data but also on-policy exploration. now we can have these small models on which we can do RL for all kinds of tasks without destroying base model capability.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 That is a perfect summary. You nailed the exact motivation: modifying a massive foundation model with sparse RL rewards is computationally brutal, and destroying its broad, pre-trained common sense just to learn how to plug in a single cable is a terrible trade-off. 
 
@@ -213,15 +213,15 @@ You have the conceptual model fully mapped out now.
 
 As you look at moving this into implementation, which of those four pieces feels like the trickiest one to actually translate into code, or where do you anticipate the most friction?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i've already done the extractor. and i guess an actor-critic is quite standard in RL so an agent can do it reasonably well. the tricky part is the buffer. because regular dagger or imitation learning datasets just have cam images, state and action for every frame. an athough i can take this and pass it through the model to get pi05 embeds and then RL token from this, what will i do with it's action chunks ? because it gives me a chunk whereas the dataset has one action it executed. should i create a 50-step action horizon in the dataset to compare with this chunk ? i guess it can be a sliding window.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You hit the exact right solution: a sliding window is exactly how you bridge this gap.
 
@@ -267,15 +267,15 @@ There is one geometric edge case you will immediately run into when you write th
 
 If your task takes exactly 500 frames to complete, and you are sliding a window of size $C=10$ across it... what physically happens to `executed_chunk` when your loop reaches frame 495? How do you think you should handle those final moments of the trajectory where the window "hangs off" the edge of your recorded data?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 you can just shorted the window to what actually exists. or you can pad it with null actions.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Both are the classic engineering solutions, but one plays much nicer with neural networks.
 
@@ -293,15 +293,15 @@ You now have the complete blueprint:
 
 You have mapped the whole system from the abstract math down to the array-slicing edge cases. Before you start writing the code, is there any part of this mental movie that still feels blurry, or do you feel ready to build?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 fair so padding can be more like,  do an action so the last state is mantained
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly. In robotics, this is usually called "hold pose." You just repeat the final action so the robot stays firmly in the successful state, keeping the math clean without accidentally teaching it a catastrophic final movement.
 
@@ -309,15 +309,15 @@ You have the whole picture now. You came in trying to figure out how to get from
 
 Unless there are any other conceptual shadows hiding in the corners of this paper, it sounds like you are completely ready to write the code. How are you feeling about it?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i still don't have the full picture though. so i have a sliding window. i have dagger data and action chunks from the policy. but dagger data is such that some of them are on policy and suboptimal and the rest of them can be human taking over. how would i disambiguate that ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 This is a brilliant question. It reveals the fundamental shift in mindset between Imitation Learning (like standard DAgger) and Reinforcement Learning. 
 
@@ -345,15 +345,15 @@ In fact, having that suboptimal robot data in the buffer is actually *helpful*. 
 
 There is just one structural invariant you must maintain when building the buffer, regardless of who is driving. For both Scenario A and Scenario B, what must the `reference_action_chunk` be?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 but things aren't as straightforward as you're saying though. because dagger episodes always end in success. this is due to the fact that a suboptimal policy is then taken over by human intervention and guided to success. so wouldn't those early, suboptimal policy behavior also get 'lit up' from TD learning updates ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You just caught a massive subtlety that trips up a lot of researchers. You are absolutely right. 
 
@@ -381,15 +381,15 @@ This is why you don't have to manually label which parts of the dataset are huma
 
 Does that geometric picture of the "melting reward" resolve the paradox for you?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 it does make sense but i thought i might have to do something clever like give it negative rewards of lets say -1 when its a dagger dataset and in the policy section
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 It is incredibly tempting to step in and manually punish the robot by injecting `-1`s. This is called "reward shaping," and it is a classic instinct when you want to force the model to learn faster. 
 
@@ -407,15 +407,15 @@ When you sit down to write your data-loading script, you don't need a complex pa
 
 Knowing this, what is the *only* thing your script actually needs to look for in a logged DAgger trajectory to assign the correct rewards for the Replay Buffer?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 whether or not the episodes have ended in success
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Spot on. If the trajectory ended in the robot successfully completing the task, the very last transition in that file gets a `1`. Every single other transition gets a `0`. That is literally it. 
 
@@ -429,15 +429,15 @@ When you are building this Replay Buffer from your logged DAgger data, for every
 
 To make sure the $\beta$-regularizer (the "leash") works properly when the Actor trains on this data later, where *must* the `reference_action_chunk` come from for this transition?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 reference action chunk comes from the base policy pi05 VLA ofc
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Exactly. Even if the human took over and executed a flawless movement, you *must* record what the frozen VLA *would* have done at that exact moment. That way, the Actor learns: "The VLA wanted to do X, but the correct action was Y. Next time, I need to edit X into Y."
 

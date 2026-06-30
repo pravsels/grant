@@ -1,27 +1,27 @@
-Learner
+## Learner
 
 Attachments:
 - RLT.pdf (/Users/ps/Desktop/papers/Robot RL/RLT.pdf)
 
 i've got a few doubts about this paper
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 I have the paper in front of me. 
 
 Where should we start? Feel free to point directly to the specific equation, architectural choice, or edge case that is bothering you, and we can look straight at the math.
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 firstly there's the confusion of multiple Qs. there's Q cap, Q_psi and Q_psi'
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Let’s look straight at Equation (3) on page 4. At its core, this is just a standard Mean Squared Error loss. We are training a neural network to hit a specific numerical target. 
 
@@ -35,15 +35,15 @@ To make sure the time mechanics of this equation are sitting right with you: loo
 
 Why is the discount factor on the $Q_{\psi'}$ term specifically $\gamma^C$, rather than just $\gamma$?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 good follow up. wanted to make sure i understood the time notation as well. theres gamma^t' where t' goes from 1 to chunk size C. gamma raised to C makes sense if you wanted to discount propportional to the no of actions in the chink, which is C. and then the rewards too i guess we get C rewards starting from the full reward and then discounted C-1 rewards. which i guess makes sense. more confusing is that in the summation there's a discounted future Q being added essentially C times. but its weird because the future Q based on x' and a' is always from after the whole chunk execution ? how does that make sense ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You just caught a classic notation trap. Your instinct that it is weird is dead on: adding the future Q value $C$ times makes absolutely no physical sense.
 
@@ -61,15 +61,15 @@ This is exactly the standard 1-step TD update you already know, just stretched o
 
 Look closely at the expectation term at the very end: $\mathbb{E}_{\mathbf{a}' \sim \pi_\theta}$. Based on your previous deep dive into the "off-policy firewall", what is physically happening at the boundary where the chunk ends and $\mathbf{x}'$ begins?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 ah makes sense about the summation being only for the reward term. idk what you mean by happening physically. the chunk gives us a new state x' and if you follow the policy, you get a new action chunk a'. Q(x', a') gives you the value of being at state x' and following policy pi which gives you action a'
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Your literal reading of the math is perfectly correct. 
 
@@ -81,15 +81,15 @@ In the replay buffer, the *actual* historical next action is that brilliant huma
 
 To pressure-test this: What exactly would go wrong during training if we dropped the expectation and just evaluated $Q_{\psi'}(\mathbf{x}', \mathbf{a}'_{\text{buffer}})$, using the actual human action that happened next?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 lets get back to that later. i have another doubt. the paper says "sampled reference chunk preserves mode information from the VLA's multimodal action distribution, which would otherwise be difficult for a unimodal gaussian actor to recover". what does this mean ? why is the VLA's actions multimodal but the actor's actions unimodal ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Fair enough, we can park the off-policy firewall for now. 
 
@@ -112,15 +112,15 @@ The VLA handles the multimodality *before* the Actor ever sees it.
 
 Does that picture of the Gaussian averaging out the empty space make sense?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 what does it mean for the action distribution to have a mean of (x, a_tilde_1:C) ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Ah, I see exactly where the confusion is. It's a slight trick of the mathematical notation. 
 
@@ -139,15 +139,15 @@ Because the network gets to "see" the VLA's proposal $\tilde{\mathbf{a}}_{1:C}$ 
 
 Does it make sense why treating the VLA's action as an *input* to the Actor solves the problem of needing to search the whole action space from scratch?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 yeah this makes sense. lets move to my other doubt. in reference action dropout section it says "we replace the reference chunk with zeros before passing it to the actor". how could it be zeros though ? wouldn't the regularization term now force the actor to output actions close to a vector of 0s ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 This is a razor-sharp catch. If the regularization target in Equation (5) were actually replaced with zeros, the robot would quite literally learn to stop moving and output zero-velocity actions. 
 
@@ -163,15 +163,15 @@ By blinding the input but keeping the true target in the loss, you force the Act
 
 Does it make sense why separating the input mask from the loss target prevents the network from collapsing to zero?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 one more claraification. i see that pi also has subscript of theta pi_theta and the mu in the normal distribution also had mu_theta. what is the actual actor network ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 This is a great clarifying question, because RL papers notoriously blur the line between math and code here. 
 
@@ -188,15 +188,15 @@ When we say "we sample an action from $\pi_\theta$", in code that literally just
 
 Does that map cleanly to how you would expect to write this in PyTorch?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 do you think there's some term that actually forces pi_theta to be a normal distribution with output from mu_theta as mean and variance sigma ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 No, and this is a crucial distinction between the math equations and the physical code. 
 
@@ -217,15 +217,15 @@ The loss function in Equation (5) doesn't care about the noise or the shape of t
 
 Does it make sense why we don't need a loss term to enforce the distribution shape here?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 wait, did you say that the noise is fixed ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Ah, I need to be precise with my words here. The *noise* is random every time, but the *size* of the noise (the standard deviation, $\sigma$) is fixed. 
 
@@ -242,15 +242,15 @@ The `randn` gives us a fresh random direction every single time, but the multipl
 
 Does that clarify the difference between the random noise and the fixed $\sigma$?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 yep, makes sense. another doubt is there's a warmup phase. is that just the critic being updated on imitation learning data or is the actor also updated ?
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Actually, there is a slight misconception in the premise here. The warmup phase doesn't use the offline imitation learning dataset, and *neither* network is updated while it happens.
 
@@ -267,15 +267,15 @@ This is exactly where the BC regularizer ($\beta \|\mathbf{a} - \tilde{\mathbf{a
 
 Does it make sense why they need to pre-fill the buffer using the VLA, rather than just letting the Actor start exploring randomly from step zero?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 but the section specifically says that the warmup steps gives the critic an initial learning signal and ensures that online RL begins from competent VLA behavior
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You have a sharp eye. You are quoting the text exactly right, and it sounds like a contradiction. 
 
@@ -295,15 +295,15 @@ And you are correct about the Actor: once the learning switch is flipped, the Ac
 
 Does that timeline clarify what they mean by providing an "initial signal"?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 well well well. if warmup is about seeing successes than you can absolute fill it up with IL data from the past.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You are absolutely right to point that out. Logically, using the offline Imitation Learning (IL) data to seed the replay buffer is a fantastic idea. In fact, injecting human demos into the replay buffer is exactly how state-of-the-art methods like RLPD and HIL-SERL usually work. 
 
@@ -322,15 +322,15 @@ Instead of dealing with that retroactive labeling, it's practically much easier 
 
 Plus, there's a second, deeper RL reason. Do you see why training the Critic on the VLA's actual rollouts might make the policy more robust than training it purely on perfect human demonstrations?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 you can run the VLA on IL inputs and get the reference actions btw
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You caught me. You are 100% right. Running a frozen VLA offline over a static dataset of images to generate $\mathbf{\tilde{a}}$ is computationally trivial. My argument about practicality there was weak.
 
@@ -348,15 +348,15 @@ By doing a live warmup rollout driven by the VLA, you populate the buffer not wi
 
 Does it make sense why the Critic desperately needs to see those "imperfect but recoverable" VLA states before the Actor starts exploring?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 i'll have to come back to this. i got 2 last doubts. what's G ? is it the update to data ratio ? and also in the RLT algorithm 1. it says at:t+C-1 can be a_human if intervention, a_tilde_t:t+C-1 if t < N_warm or pi_theta(. | x_t, a_tilde). then later it says a_tilde_t:t+C-1 is a_human when intervention. i feel like the latter is correct. reference action would be human when it's intervention. but the action actions would always be from the policy right ? it would neither be from human nor from the VLA
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 You are spot on about $G$. Yes, $G$ is the update-to-data ratio. For every one step the robot takes in the environment, the algorithm runs $G$ loops of backpropagation. The paper mentions at the bottom of page 5 that they set $G = 5$. 
 
@@ -376,15 +376,15 @@ Your instinct is that the executed action should always come from the policy $\p
 
 Does the distinction between "what the motors execute" (Line 9) and "what the loss function targets" (Line 11) clear up that block of pseudocode?
 
-----------------------------------------
+---
 
-Learner
+## Learner
 
 yep that makes sense. gotta go sleep now so that's the end of this session. we might have to revisit later for open threads.
 
-----------------------------------------
+---
 
-Grant
+## Grant
 
 Sounds good. You had a genuinely sharp eye today—especially catching that notation trap on the Q-value summation and pushing back on the replay buffer data distribution. 
 

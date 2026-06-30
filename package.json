@@ -18,6 +18,7 @@
       "index.html",
       "main.js",
       "sessionPaths.js",
+      "transcriptFormat.js",
       "preload.js",
       "system_prompt.txt",
       "package.json"

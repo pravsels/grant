@@ -2,7 +2,13 @@
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { formatDayFolder, padNumber } = require('./sessionPaths');
+const {
+  formatDayFolder,
+  formatTimestampFile,
+  isTranscriptFile,
+  summaryPathFor,
+} = require('./sessionPaths');
+const { formatTranscript } = require('./transcriptFormat');
 
 const envPath = app.isPackaged
   ? path.join(process.resourcesPath, '.env')
@@ -52,10 +58,6 @@ function getSessionsRoot() {
   return path.join(__dirname, 'sessions');
 }
 
-function formatTimestampFile(date) {
-  return `${padNumber(date.getHours())}-${padNumber(date.getMinutes())}-${padNumber(date.getSeconds())}-${padNumber(date.getMilliseconds(), 3)}.txt`;
-}
-
 function getOrCreateSessionFile(tabId) {
   const existingPath = sessionFilesByTab.get(tabId);
   if (existingPath) return existingPath;
@@ -68,7 +70,7 @@ function getOrCreateSessionFile(tabId) {
   let counter = 1;
 
   while (fs.existsSync(filePath)) {
-    filePath = path.join(dayFolder, `${formatTimestampFile(now).replace('.txt', '')}-${counter}.txt`);
+    filePath = path.join(dayFolder, `${formatTimestampFile(now).replace('.md', '')}-${counter}.md`);
     counter += 1;
   }
 
@@ -76,58 +78,10 @@ function getOrCreateSessionFile(tabId) {
   return filePath;
 }
 
-function formatAttachments(attachments = []) {
-  if (!attachments.length) return [];
-
-  return [
-    'Attachments:',
-    ...attachments.map(file => {
-      if (file.path) {
-        return `- ${file.name} (${file.path})`;
-      }
-      return `- ${file.name}`;
-    }),
-    ''
-  ];
-}
-
 function countWords(text = '') {
   const trimmed = String(text).trim();
   if (!trimmed) return 0;
   return trimmed.split(/\s+/).length;
-}
-
-function formatTranscript(messages, assistantContent = '', errorMessage = '') {
-  const transcriptMessages = [...messages];
-
-  if (assistantContent) {
-    transcriptMessages.push({ role: 'assistant', content: assistantContent });
-  }
-
-  if (errorMessage) {
-    transcriptMessages.push({ role: 'system', content: `Error: ${errorMessage}` });
-  }
-
-  const lines = transcriptMessages.flatMap((message, index) => {
-    const speaker = message.role === 'user'
-      ? 'Learner'
-      : message.role === 'assistant'
-        ? 'Grant'
-        : 'System';
-
-    const content = message.content ? String(message.content).trimEnd() : '';
-
-    return [
-      `${speaker}`,
-      '',
-      ...formatAttachments(message.attachments),
-      ...(content ? [content] : ['[No text content]']),
-      '',
-      ...(index < transcriptMessages.length - 1 ? ['----------------------------------------', ''] : [])
-    ];
-  });
-
-  return `${lines.join('\n').trimEnd()}\n`;
 }
 
 function getTranscriptWordCount(messages, assistantContent = '') {
@@ -161,10 +115,6 @@ function saveSessionTranscript(tabId, messages, assistantContent = '', errorMess
 
 function topicHintFromPath(filePath) {
   return path.basename(filePath, path.extname(filePath));
-}
-
-function summaryPathFor(transcriptPath) {
-  return transcriptPath.replace(/\.txt$/, '.summary.md');
 }
 
 function buildSummarizationPrompt({ transcript, learnerProfile, topicHint }) {
@@ -288,7 +238,7 @@ async function sweepUnsummarized() {
   // so learner.md evolves in the order the sessions actually happened.
   const all = [];
   for (const dir of dayDirs) {
-    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.txt'))) {
+    for (const f of fs.readdirSync(dir).filter(isTranscriptFile)) {
       const full = path.join(dir, f);
       all.push({ full, birth: fs.statSync(full).birthtimeMs });
     }
