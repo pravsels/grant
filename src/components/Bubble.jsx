@@ -14,7 +14,6 @@ export default function Bubble ({ role, content, attachments }) {
     return (
         <div
             className={`bubble ${isUser ? 'user' : 'model'}`}
-            onCopy={isUser ? undefined : e => e.preventDefault()}
         >
             {/* Render attachments first if any */}
             {attachments && attachments.length > 0 && (

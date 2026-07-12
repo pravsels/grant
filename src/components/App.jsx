@@ -1,11 +1,23 @@
 import React, { useRef, useEffect, useState } from 'react';
 import Bubble from './Bubble';
 
+// Skills the learner can load with a /<name> command at the start of a message.
+// Each maps to a skills/<name>.md instruction block loaded on top of Grant's normal self.
+const SKILLS = ['distill'];
+
+function parseSkillCommand(text) {
+    const match = text.match(/^\/([a-z0-9_-]+)\b[ \t]*/i);
+    if (!match) return null;
+    const name = match[1].toLowerCase();
+    if (!SKILLS.includes(name)) return null;
+    return { name, rest: text.slice(match[0].length).trim() };
+}
+
 export default function App() {
     // State: list of tabs
-    // Each tab: { id, messages: [], inputText: '', isStreaming: false, attachments: [] }
+    // Each tab: { id, messages: [], inputText: '', isStreaming: false, attachments: [], skill: null }
     const [tabs, setTabs] = useState([
-      { id: 1, title: 'New Chat', messages: [], inputText: '', isStreaming: false, attachments: [] }
+      { id: 1, title: 'New Chat', messages: [], inputText: '', isStreaming: false, attachments: [], skill: null }
     ]);
     
     const [activeTabId, setActiveTabId] = useState(1);
@@ -72,10 +84,19 @@ export default function App() {
     }, [activeTabId]);
 
     const handleSend = () => {
-      const text = activeTab.inputText.trim();
+      const rawText = activeTab.inputText.trim();
       const atts = activeTab.attachments || [];
       
-      if (!text && atts.length === 0) return;
+      if (!rawText && atts.length === 0) return;
+
+      // A /<skill> command at the start of a message loads that skill for the
+      // tab. It stays loaded for the rest of the conversation.
+      const command = parseSkillCommand(rawText);
+      const skill = command ? command.name : (activeTab.skill || null);
+      let text = command ? command.rest : rawText;
+      if (command && !text) {
+        text = `Loaded the /${command.name} skill.`;
+      }
 
       // Optimistically update UI
       const newMsg = { role: 'user', content: text, attachments: atts };
@@ -89,6 +110,7 @@ export default function App() {
               inputText: '', 
               attachments: [], // clear attachments after sending
               isStreaming: true, 
+              skill,
               title: t.messages.length === 0 ? (text.slice(0, 20) || 'File Attachment') : t.title 
             }
           : t
@@ -105,7 +127,8 @@ export default function App() {
 
       window.electron.startChat(
         serializableMsgs,
-        activeTabId
+        activeTabId,
+        skill
       );
     };
 
@@ -113,7 +136,7 @@ export default function App() {
       const newId = Date.now();
       setTabs(prev => [
         ...prev, 
-        { id: newId, title: 'New Chat', messages: [], inputText: '', isStreaming: false, attachments: [] }
+        { id: newId, title: 'New Chat', messages: [], inputText: '', isStreaming: false, attachments: [], skill: null }
       ]);
       setActiveTabId(newId);
     };
@@ -124,7 +147,7 @@ export default function App() {
 
       if (tabs.length === 1) {
         // Don't close the last tab, just reset it
-        setTabs([{ id: Date.now(), title: 'New Chat', messages: [], inputText: '', isStreaming: false, attachments: [] }]);
+        setTabs([{ id: Date.now(), title: 'New Chat', messages: [], inputText: '', isStreaming: false, attachments: [], skill: null }]);
         return;
       }
       

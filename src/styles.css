@@ -266,6 +266,7 @@ body {
 .bubble.model {
   align-self: flex-start;
   background: var(--model-bubble-bg);
+  user-select: text;
   border-bottom-left-radius: 0.25rem;
 }
 

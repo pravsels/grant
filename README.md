@@ -10,49 +10,23 @@ So far I've found it to be good for digesting papers and for slowing down and un
 
 ![grant_2x](https://github.com/user-attachments/assets/6e57d099-9b7f-4f56-aacd-47fe41c4b2c4)
 
-## Sessions
+## Architecture
 
-Each tab is a session. Transcripts are saved to `sessions/<YYYY-MM-DD_D-Month-YYYY>/<timestamp>.md` once the conversation passes 100 words. Rename a file to indicate its topic — the new name becomes your framing when it's summarized.
+Grant is a set of files that get assembled into a system instruction. This repo ships one harness for it, but any agent harness can be Grant by assembling the same files the same way.
 
-## Memory
+- **Identity — `soul.md`.** Who Grant is. Always loaded.
+- **Skill — `skills/<name>.md`.** What Grant does in a session. Exactly one skill is active at a time; they don't combine. The default is `tutor.md`. A message that starts with `/<name>` (e.g. `/distill`) switches the session to that skill for the rest of its life; an unrecognized name stays on `tutor`. Adding a skill means adding a file.
+- **Learner profile — `learner.md`.** Appended to the instruction under the `tutor` skill so Grant knows who it's teaching. Other skills omit it.
 
-When a tab closes (or the app quits, or on next launch as a safety net), one Gemini call produces:
+### Sessions
 
-- A **summary** next to the transcript (`<name>.summary.md`) capturing what changed in the learner — threads, evidence, misconceptions, open questions.
-- An updated **`learner.md`** at the project root — a single bounded profile that is the only memory loaded into Grant's system prompt at the next session.
+Each conversation is a session, saved to `sessions/<YYYY-MM-DD_D-Month-YYYY>/<timestamp>.md` once it passes 100 words. Renaming a transcript sets its topic — that name becomes the framing when it's summarized.
 
-Hand-edit `learner.md` to correct or pin things. Watch the terminal for `[summary] ...` lines.
+### Memory
 
-## Setting Up 
+When a session ends (tab close, app quit, or as a safety net on next launch), one `gemini-3.1-pro-preview` call produces:
 
-Download and install NVM:
-```
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
-```
+- A **summary** beside the transcript (`<name>.summary.md`) — what changed in the learner: threads, evidence, misconceptions, open questions.
+- A rewritten **`learner.md`** — a single bounded profile, and the only memory carried into the next session.
 
-Start a new shell (open a new tab) and install Node: 
-```
-nvm install 22
-```
-
-Install all the dependencies for this project: 
-```
-npm install 
-```
-
-Please note that currently this app only works with Gemini. You need to create a `.env` file with your API key set as `GEMINI_API_KEY="<your_key>"`.
-
-## Launching
-
-To build and run the app, please use: 
-```
-npm start
-```
-
-## Install as Desktop Application
-
-To create a desktop application that can be installed, please run:
-```
-npm run dist
-```
-This will create an installer/package in the `dist/` folder for your platform (`.dmg` on Mac, `.exe` on Windows, etc.).
+Edit `learner.md` by hand to correct or pin things; watch the terminal for `[summary] ...` lines.

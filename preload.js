@@ -20,7 +20,7 @@ ipcRenderer.on('gemini-chat-error', (_e, { error, tabId }) => {
 // expose to main world 
 contextBridge.exposeInMainWorld('electron', {
     // start a chat stream 
-    startChat: (messages, tabId) => ipcRenderer.send('gemini-chat-start', { messages, tabId }),
+    startChat: (messages, tabId, skill = null) => ipcRenderer.send('gemini-chat-start', { messages, tabId, skill }),
     // register a handler for incoming chunks / end / error 
     onChatStream: (cb) => {
         callbacks.push(cb);

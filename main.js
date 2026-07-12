@@ -24,14 +24,45 @@ const { GoogleGenAI } = require('@google/genai');
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const soulPrompt = fs.readFileSync(path.join(__dirname, 'soul.md'), 'utf-8');
-const systemPrompt = fs.readFileSync(path.join(__dirname, 'system_prompt.txt'), 'utf-8');
 const learnerProfilePath = path.join(__dirname, 'learner.md');
+const skillsRoot = path.join(__dirname, 'skills');
+const DEFAULT_SKILL = 'tutor';
 const sessionFilesByTab = new Map();
 const systemInstructionByTab = new Map();
 const MIN_TRANSCRIPT_WORDS = 100;
 const SUMMARIZATION_MODEL = 'gemini-3.1-pro-preview';
 
-function buildSystemInstruction() {
+// Grant's behaviour for a session is exactly one skill, loaded from skills/<name>.md.
+// The default skill (skills/tutor.md) is always loaded unless a /<name> command
+// swaps in another one. Skills are mutually exclusive, not stacked — same tab,
+// same memory, just a different job. soul.md is Grant's identity, always present.
+function loadSkill(name) {
+  const safe = String(name || '').replace(/[^a-z0-9_-]/gi, '');
+  if (!safe) return '';
+  try {
+    return fs.readFileSync(path.join(skillsRoot, `${safe}.md`), 'utf-8').trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+function buildSystemInstruction(skill = null) {
+  const requested = skill || DEFAULT_SKILL;
+  let body = loadSkill(requested);
+  let isDefault = requested === DEFAULT_SKILL;
+
+  // An unknown skill name falls back to the default tutor skill.
+  if (!body) {
+    body = loadSkill(DEFAULT_SKILL);
+    isDefault = true;
+  }
+
+  // The learner profile is tutoring memory, so it's only attached under the
+  // default tutor skill.
+  if (!isDefault) {
+    return `${soulPrompt}\n\n${body}`;
+  }
+
   let learnerProfile = '';
   try {
     learnerProfile = fs.readFileSync(learnerProfilePath, 'utf-8').trim();
@@ -41,18 +72,19 @@ function buildSystemInstruction() {
     ? `\n\n## What you know about this learner\n\n${learnerProfile}`
     : '';
 
-  return `${soulPrompt}\n\n${systemPrompt}${profileBlock}`;
+  return `${soulPrompt}\n\n${body}${profileBlock}`;
 }
 
-// One snapshot per tab. learner.md is read on the first message of a session
-// and held fixed for the rest of that session. soul.md and system_prompt.txt
-// are already module-level constants; they're effectively snapshotted at app start.
-function getSystemInstructionFor(tabId) {
+// One snapshot per tab. learner.md and the active skill file are read on the
+// first message of a session and held fixed for the rest of it. soul.md is a
+// module-level constant, effectively snapshotted at app start.
+// The snapshot is rebuilt if the active skill changes mid-session.
+function getSystemInstructionFor(tabId, skill = null) {
   const cached = systemInstructionByTab.get(tabId);
-  if (cached) return cached;
-  const fresh = buildSystemInstruction();
-  systemInstructionByTab.set(tabId, fresh);
-  return fresh;
+  if (cached && cached.skill === skill) return cached.instruction;
+  const instruction = buildSystemInstruction(skill);
+  systemInstructionByTab.set(tabId, { skill, instruction });
+  return instruction;
 }
 
 function getSessionsRoot() {
@@ -353,7 +385,7 @@ function getFilePart(filePath) {
   }
 }
 
-ipcMain.on('gemini-chat-start', async (event, { messages, tabId }) => {
+ipcMain.on('gemini-chat-start', async (event, { messages, tabId, skill = null }) => {
     let assistantResponse = '';
     try {
         // Map messages to history with attachments
@@ -406,7 +438,7 @@ ipcMain.on('gemini-chat-start', async (event, { messages, tabId }) => {
         const chat = ai.chats.create({
             model: 'gemini-3.1-pro-preview',
             config: {
-                systemInstruction: getSystemInstructionFor(tabId),
+                systemInstruction: getSystemInstructionFor(tabId, skill),
             },
             history: history
         });
