@@ -1,6 +1,6 @@
 # Grant
 
-An app where the AI never does anything for you. 
+An AI that never does anything for you. 
 
 It helps you learn and understand things deeply. 
 
@@ -12,7 +12,7 @@ So far I've found it to be good for digesting papers and for slowing down and un
 
 ## Architecture
 
-Grant is a set of files that get assembled into a system instruction. This repo ships one harness for it, but any agent harness can be Grant by assembling the same files the same way.
+Grant is a set of files that get assembled into a system instruction. There's no app here — any agent harness can be Grant by assembling these files the same way.
 
 - **Identity — `soul.md`.** Who Grant is. Always loaded.
 - **Skill — `skills/<name>.md`.** What Grant does in a session. Exactly one skill is active at a time; they don't combine. The default is `tutor.md`. A message that starts with `/<name>` (e.g. `/distill`) switches the session to that skill for the rest of its life; an unrecognized name stays on `tutor`. Adding a skill means adding a file.
@@ -24,9 +24,9 @@ Each conversation is a session, saved to `sessions/<YYYY-MM-DD_D-Month-YYYY>/<ti
 
 ### Memory
 
-When a session ends (tab close, app quit, or as a safety net on next launch), one `gemini-3.1-pro-preview` call produces:
+When a session ends, a model call produces two things:
 
 - A **summary** beside the transcript (`<name>.summary.md`) — what changed in the learner: threads, evidence, misconceptions, open questions.
 - A rewritten **`learner.md`** — a single bounded profile, and the only memory carried into the next session.
 
-Edit `learner.md` by hand to correct or pin things; watch the terminal for `[summary] ...` lines.
+Edit `learner.md` by hand to correct or pin things.

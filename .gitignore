@@ -1,8 +1,1 @@
-
-.DS_store 
-
-node_modules/
-dist/
-web/ 
-
-.env
+.DS_Store
