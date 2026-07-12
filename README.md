@@ -16,7 +16,7 @@ Grant is a set of files that get assembled into a system instruction. There's no
 
 - **Identity — `soul.md`.** Who Grant is. Always loaded.
 - **Skill — `skills/<name>.md`.** What Grant does in a session. Exactly one skill is active at a time; they don't combine. The default is `tutor.md`. A message that starts with `/<name>` (e.g. `/distill`) switches the session to that skill for the rest of its life; an unrecognized name stays on `tutor`. Adding a skill means adding a file.
-- **Learner profile — `learner.md`.** Appended to the instruction under the `tutor` skill so Grant knows who it's teaching. Other skills omit it.
+- **Learner profile — `learner_profile.md`.** Appended to the instruction under the `tutor` skill so Grant knows who it's teaching. Other skills omit it.
 
 ### Sessions
 
@@ -27,6 +27,6 @@ Each conversation is a session, saved to `sessions/<YYYY-MM-DD_D-Month-YYYY>/<ti
 When a session ends, a model call produces two things:
 
 - A **summary** beside the transcript (`<name>.summary.md`) — what changed in the learner: threads, evidence, misconceptions, open questions.
-- A rewritten **`learner.md`** — a single bounded profile, and the only memory carried into the next session.
+- A rewritten **`learner_profile.md`** — a single bounded profile, and the only memory carried into the next session.
 
-Edit `learner.md` by hand to correct or pin things.
+Edit `learner_profile.md` by hand to correct or pin things.
