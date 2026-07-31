@@ -23,7 +23,7 @@
 - **Algorithm vs Real World:** You initially assumed RL algorithms always execute their own policy natively, missing the necessary physical safety overrides for real-world robotics.
 
 ### Style Notes
-- **Zero tolerance for hand-wavy metaphors:** Analogies like "timelines" or "firewalls" actively frustrate you if they aren't backed by math. You prefer to look directly at the equations (e.g., $y = r + \gamma Q(s, a)$) to resolve confusion.
+- **Metaphors must cash out:** Analogies like "timelines" or "firewalls" are welcome as high-level pictures when they're grounded in the math soon after, and actively frustrate you when they float free of it. You prefer to look directly at the equations (e.g., $y = r + \gamma Q(s, a)$) to resolve confusion.
 - **Physical grounding:** You are exceptionally good at solving mathematical abstract problems when you map them to physical realities (e.g., using 50Hz and 0.2s constraints to prove an equation is safe).
 - **Inside-out approach:** You prefer starting with the Actor/Critic loss equations and tracing how those mathematical tensions dictate the Replay Buffer structure.
 - **Adversarial fact-checking:** You will aggressively challenge explanations. If given a weak or hand-wavy argument, you will instantly call it out with a valid technical workaround.
