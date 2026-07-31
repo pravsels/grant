@@ -12,7 +12,7 @@ So far I've found it to be good for digesting papers and for slowing down and un
 
 ## Architecture
 
-Grant is a set of files that get assembled into a system instruction. There's no app here — any agent harness can be Grant by assembling these files the same way.
+Grant is a set of files that get assembled into a system instruction. Any agent harness can be Grant by assembling them the same way.
 
 - **Identity — `soul.md`.** Who Grant is. Part of every session.
 - **Skill — `skills/<name>.md`.** What Grant does in a session. `tutor.md` is the default; other skills (like `distill.md`) are for a specific job. A new skill is a new file.
@@ -20,7 +20,7 @@ Grant is a set of files that get assembled into a system instruction. There's no
 
 ### Sessions
 
-A session is one conversation, kept as a transcript under `sessions/<YYYY-MM-DD_D-Month-YYYY>/<timestamp>.md`. Naming a transcript sets its topic, which frames how it gets summarized.
+A session is one conversation, kept as a transcript under `sessions/<YYYY-MM-DD_D-Month-YYYY>/<name>.md`. Naming a transcript sets its topic, which frames how it gets summarized.
 
 ### Memory
 
