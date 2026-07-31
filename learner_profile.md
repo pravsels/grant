@@ -1,29 +1,40 @@
 ### Current Focus
-- Transitioning from theory to implementation: dissecting the HIL-SERL and Pi0 RL Token (RLT) codebases to understand how off-policy learning, TD3, and action chunking are mathematically translated into PyTorch and real-world robotics pipelines.
-- Mapping exact architectural differences between math notation and code (e.g., distinguishing the neural network forward pass from the loss function, and $\mu_\theta$ from $\pi_\theta$).
+- Reading and reasoning about the **armnet** robot-safety codebase — specifically the `keep_out` system on the SO-101 arms (edge connector): capsule collision geometry, signed-distance plane checks, the velocity damper, and the camera-mount prism.
+- Alongside this, an ongoing theory-to-implementation thread on RL for robotics: dissecting HIL-SERL and the Pi0 RL Token (RLT) codebases to see how off-policy learning, TD3, and action chunking translate from math into PyTorch and real hardware.
+- A recurring interest in the *design* of these systems, not just their correctness: config ergonomics, fail-safe behavior under changing assumptions, and where a clean abstraction is worth new code.
 
 ### What You've Internalized
-- **The Off-Policy Firewall & Critic Dependency:** You deeply understand why human interventions don't accidentally reinforce bad robot actions. Because the Bellman equation evaluates the *next* state using the *Actor's* policy ($\mathbb{E}_{\mathbf{a}' \sim \pi_\theta}$), it ignores the human's successful recovery. However, you independently recognized that this firewall is not magic—it *entirely depends* on the Critic accurately predicting that the robot's intended path was doomed ($Q=0$). 
-- **Base VLA Warmup Necessity:** Because the off-policy firewall relies on an accurate Critic, the live warmup is non-negotiable. The Critic must be forced to watch the base VLA make algorithmic mistakes (not just human mistakes) so it learns to assign low Q-values to out-of-distribution "wobbles" and prevents the Actor from steering into hallucinations.
-- **Chunking Boundary Resolution:** You successfully solved the vulnerability of chunked Q-targets (where $C=10$). While the equation theoretically allows human interventions to leak rewards backward within the chunk's sum, you deduced that at 50Hz, a 10-step chunk is only 0.2 seconds. It is physically impossible for a human to intervene and finish the task within that window, safely preserving the firewall at the chunk boundaries.
-- **1-Step Compounding Horizons:** You recognized how 1-step updates, when chained together by a competent policy, compound the $\gamma$ "time tax" backwards (e.g., $\gamma^5$ vs $\gamma^{15}$), forcing the Actor to prefer direct routes over perfectly recoverable detours.
-- **VLA Generalization Protection:** You intuitively grasped that RLT is fundamentally a structural workaround to do HIL-SERL on massive VLAs without causing catastrophic forgetting of internet-scale priors.
-- **The "Identity Function" Trap:** You flawlessly deduced why the Actor requires 50% reference action dropout during training to prevent lazy copy-pasting of the VLA's reference action.
-- **Chunking as Time Compression:** You realize that grouping 10 steps into one chunk compresses temporal distance by 10x, making it vastly easier to pass sparse rewards backward without the signal dying out.
-- **Distribution by Definition:** You keenly caught the distinction between noise being random and variance being fixed, realizing $\pi_\theta$ is a Gaussian simply because the code adds random noise scaled by a fixed $\sigma$ to the deterministic output of $\mu_\theta$.
+Robotics safety / geometry (this session):
+- **Capsules as the right model:** links are fat line-segments (segment + one radius) — a skeleton ignores real 3D-printed bulk, a full mesh is too slow. You derived both reasons unprompted.
+- **Signed-distance clearance:** clearance = (point − p0)·n̂ − radius. The unit normal projects out the perpendicular distance; the radius subtraction folds link thickness into one number. You correctly recovered the "perpendicular distance" reading (needed the *signed* qualifier added).
+- **Velocity-blind position gates:** a fixed geometric margin is only safe below some speed because stopping distance scales with v²; the velocity damper exists to make the fixed margin *dynamically sufficient* (a control-barrier-style constraint). You reached the strongest justification yourself — defense-in-depth via low kinetic energy.
+- **Empirical tuning ≈ solving the physics implicitly:** your 15 mm / 15°/s were chosen by feel, which is *correct* practice because a cable/gravity/PID servo has no clean constant deceleration to plug into a closed form.
+- **AND vs OR for obstacle avoidance (hard-won):** avoiding a bounded volume is a *disjunction* (De Morgan on the negated conjunction). "2 planes" (AND → forbidden = union, kills the rest pose) and "2 prism walls" (`max` → forbidden = intersection, a corner wedge) are the same lines under opposite operators. A 2-wall prism is an infinite corner wedge, safe only because of the reachability argument.
+- **Convexity obstruction:** intersecting half-spaces is always convex; the camera safe region is non-convex (an L wrapping the mount), so no AND-of-planes can express it — the prism must.
+
+RL (retained from prior sessions):
+- **Off-policy firewall & its dependence on the Critic:** interventions don't reinforce bad actions because the Bellman target evaluates the next state under the *Actor's* policy — but this only works if the Critic accurately assigns low Q to the doomed path.
+- **Base VLA warmup necessity; chunking as time compression; 1-step compounding horizons (γ time-tax); VLA generalization protection via RLT; the "identity function" trap (reference-action dropout); Gaussian policy by definition** (fixed σ noise added to μ_θ, not a learned distribution).
 
 ### Open Threads / Things to Revisit
-- We need to finish looking at Equation (2) in the paper: what exactly happens mathematically to the unconditioned terms when you set $\beta = 1$?
-- A deeper line-by-line mapping of `compute_loss_critic` to fully cement the clipped double-Q mechanics.
+- Which arm pose/direction makes the empirical 15°/s most likely to fail (worst effective deceleration under gravity).
+- The convex/non-convex pie-slice check (posed, unanswered).
+- Whether to build a 2-knob tuner over the bounded prism vs a literal 2-wall primitive — decision hinges on "is it the config *file* or the tuning *flow* that bothers you?"
+- The `check()` monotonic-retreat trace (−5→−3→−4→+2) — does it allow the motion, at which alpha, by which rule?
+- The retreat-branch comment you were going to draft yourself (Grant declined to write it for you).
+- RL: Equation (2) unconditioned terms when β = 1; line-by-line `compute_loss_critic` (clipped double-Q).
 
 ### Misconceptions Seen
-- **Magical Firewall Thinking:** You initially assumed the off-policy math mechanically protected the actor structurally. You now understand the math is only as good as the Critic's ability to accurately assign low Q-values to the actor's intended doom.
-- **Reward Leakage / Monte Carlo Thinking:** You initially assumed terminal rewards would ripple backward through the entire episode's actual timeline, missing how Q-learning chops the timeline into independent snapshots.
-- **Notation Overload:** You sometimes read math equations too literally—assuming summation bounds apply globally across an equation, reading network inputs as direct values, and assuming the loss target mirrors the dropout mask.
-- **Algorithm vs Real World:** You initially assumed RL algorithms always execute their own policy natively, missing the necessary physical safety overrides for real-world robotics.
+- **AND-thinking for multi-face obstacles:** repeatedly modeled "guard several faces" as AND-ed independent planes; missed the union-vs-intersection distinction and the convexity limit. Resolved this session, but it took several counterexamples.
+- **Plane vs prism-wall conflation:** treated a prism wall as interchangeable with an independent plane; the combination operator is the whole difference.
+- **Design-history recall:** believed the velocity damper *replaced* the directional retreat rule; both actually coexist.
+- **Notation Overload (RL):** reads equations too literally — global summation bounds, network inputs as direct values, loss target mirroring the dropout mask.
+- **Algorithm vs Real World (RL):** assumed RL always executes its own policy, missing physical safety overrides (VLA during warmup, human interventions).
 
 ### Style Notes
-- **Metaphors must cash out:** Analogies like "timelines" or "firewalls" are welcome as high-level pictures when they're grounded in the math soon after, and actively frustrate you when they float free of it. You prefer to look directly at the equations (e.g., $y = r + \gamma Q(s, a)$) to resolve confusion.
-- **Physical grounding:** You are exceptionally good at solving mathematical abstract problems when you map them to physical realities (e.g., using 50Hz and 0.2s constraints to prove an equation is safe).
-- **Inside-out approach:** You prefer starting with the Actor/Critic loss equations and tracing how those mathematical tensions dictate the Replay Buffer structure.
-- **Adversarial fact-checking:** You will aggressively challenge explanations. If given a weak or hand-wavy argument, you will instantly call it out with a valid technical workaround.
+- **Adversarial, well-formed pushback:** will not accept a claim until it survives their own counterexamples. This is productive — challenge back with rigor, not reassurance, and expect three angles of attack before a synthesis lands.
+- **Catches imprecision and rewards candor:** flagged both a sloppy phrasing ("clear any one wall") and an overclaim (that the code computes the braking relation). Own mistakes plainly and correct them.
+- **Grounds everything in the concrete:** reasons with the actual config numbers and hardware realities (3D-printed mass, servo dynamics, gravity, camera geometry). Physical grounding is where they're strongest.
+- **Systems/product lens:** raises ergonomics and fail-safe-under-change unprompted; engage the design trade-off, don't just confirm correctness.
+- **Metaphor tolerance has shifted:** high-level pictures (bouncer, building-corner, rubber-band) now land *well*, provided they cash out into the math soon after. This is a change from an earlier "zero tolerance for hand-wavy metaphors" stance — they now treat a good metaphor as a loan against precision, which is exactly the intended use. Still: when they ask a formalism-level question, give the equation, not the picture.
+- **Prefers inside-out on RL** (start from the loss equations, trace outward) and **shape-first on code/geometry** (the frame before the details) — both consistent with pulling one zoom level at a time.
