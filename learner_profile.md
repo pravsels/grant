@@ -7,6 +7,9 @@
 Robotics safety / geometry (this session):
 - **Capsules as the right model:** links are fat line-segments (segment + one radius) — a skeleton ignores real 3D-printed bulk, a full mesh is too slow. You derived both reasons unprompted.
 - **Signed-distance clearance:** clearance = (point − p0)·n̂ − radius. The unit normal projects out the perpendicular distance; the radius subtraction folds link thickness into one number. You correctly recovered the "perpendicular distance" reading (needed the *signed* qualifier added).
+- **Plane-check pipeline:** forward kinematics turns each sampled pose into link capsules; `_capsule_plane_closest()` computes one capsule's surface clearance, `_plane_clearance()` applies it across links, and `_minimum_clearance()` selects the limiting link. You compressed most of this independently; the prism grouping and path sampling still needed explicit qualification.
+- **Initial rule snapshot in `check()`:** the current pose produces separate minimum-clearance scoreboards for ordinary planes and grouped top-camera walls. Each shape's initial below-margin state chooses margin-vs-retreat behavior for the whole sweep. You understand the data structures; the reason the choice must remain frozen is not yet demonstrated.
+- **Exact snapshots replaced gradients:** you noticed that the gradient-oriented constraint-state machinery no longer matched the production damper and caught an answer based on a stale working-tree snapshot. The gradient API, viewer consumers, benchmark use, and tests have now been removed; current safety logic uses exact clearances.
 - **Velocity-blind position gates:** a fixed geometric margin is only safe below some speed because stopping distance scales with v²; the velocity damper exists to make the fixed margin *dynamically sufficient* (a control-barrier-style constraint). You reached the strongest justification yourself — defense-in-depth via low kinetic energy.
 - **Empirical tuning ≈ solving the physics implicitly:** your 15 mm / 15°/s were chosen by feel, which is *correct* practice because a cable/gravity/PID servo has no clean constant deceleration to plug into a closed form.
 - **AND vs OR for obstacle avoidance (hard-won):** avoiding a bounded volume is a *disjunction* (De Morgan on the negated conjunction). "2 planes" (AND → forbidden = union, kills the rest pose) and "2 prism walls" (`max` → forbidden = intersection, a corner wedge) are the same lines under opposite operators. A 2-wall prism is an infinite corner wedge, safe only because of the reachability argument.
@@ -21,6 +24,8 @@ RL (retained from prior sessions):
 - The convex/non-convex pie-slice check (posed, unanswered).
 - Whether to build a 2-knob tuner over the bounded prism vs a literal 2-wall primitive — decision hinges on "is it the config *file* or the tuning *flow* that bothers you?"
 - The `check()` monotonic-retreat trace (−5→−3→−4→+2) — does it allow the motion, at which alpha, by which rule?
+- Why `started_inside` is frozen from the initial pose rather than recalculated at every path sample.
+- Trace `_capsule_plane_closest()` line by line, then contrast its affine endpoint minimum with the prism calculation.
 - The retreat-branch comment you were going to draft yourself (Grant declined to write it for you).
 - RL: Equation (2) unconditioned terms when β = 1; line-by-line `compute_loss_critic` (clipped double-Q).
 
@@ -34,6 +39,7 @@ RL (retained from prior sessions):
 ### Style Notes
 - **Adversarial, well-formed pushback:** will not accept a claim until it survives their own counterexamples. This is productive — challenge back with rigor, not reassurance, and expect three angles of attack before a synthesis lands.
 - **Catches imprecision and rewards candor:** flagged both a sloppy phrasing ("clear any one wall") and an overclaim (that the code computes the braking relation). Own mistakes plainly and correct them.
+- **Actively checks changing code:** challenged a stale conclusion after gradient machinery was removed during the session. Re-read the working tree before making present-tense claims.
 - **Grounds everything in the concrete:** reasons with the actual config numbers and hardware realities (3D-printed mass, servo dynamics, gravity, camera geometry). Physical grounding is where they're strongest.
 - **Systems/product lens:** raises ergonomics and fail-safe-under-change unprompted; engage the design trade-off, don't just confirm correctness.
 - **Metaphor tolerance has shifted:** high-level pictures (bouncer, building-corner, rubber-band) now land *well*, provided they cash out into the math soon after. This is a change from an earlier "zero tolerance for hand-wavy metaphors" stance — they now treat a good metaphor as a loan against precision, which is exactly the intended use. Still: when they ask a formalism-level question, give the equation, not the picture.
